@@ -28,14 +28,12 @@ macro_rules! serial_println {
         concat!($fmt, "\n"), $($arg)*));
 }
 
-use uart_16550::{Config, Uart16550Tty, backend::PioBackend};
-use spin::Mutex;
 use lazy_static::lazy_static;
+use spin::Mutex;
+use uart_16550::{Config, Uart16550Tty, backend::PioBackend};
 
 lazy_static! {
     pub static ref SERIAL1: Mutex<Uart16550Tty<PioBackend>> = Mutex::new(unsafe {
-        Uart16550Tty::new_port(0x3F8, Config::default())
-            .expect("failed to initialize UART")
+        Uart16550Tty::new_port(0x3F8, Config::default()).expect("failed to initialize UART")
     });
 }
-

@@ -5,11 +5,12 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
 
-
+pub mod gdt;
+pub mod interrupts;
+pub mod memory;
 pub mod serial;
 pub mod vga_buffer;
-pub mod interrupts;
-pub mod gdt;
+pub mod allocator;
 
 use core::panic::PanicInfo;
 
@@ -44,14 +45,6 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
 }
 
 #[cfg(test)]
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
-    init();
-    test_main();
-    hlt_loop();
-}
-
-#[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     test_panic_handler(info)
@@ -73,11 +66,14 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
-pub fn init(){
+use bootloader::BootInfo;
+
+pub fn init(boot_info: &'static BootInfo) {
     interrupts::init_idt();
     gdt::init();
     unsafe { interrupts::PICS.lock().initialize() };
     x86_64::instructions::interrupts::enable();
+    allocator::alloc_init(boot_info);
 }
 
 pub fn hlt_loop() -> ! {
@@ -85,3 +81,18 @@ pub fn hlt_loop() -> ! {
         x86_64::instructions::hlt();
     }
 }
+
+#[cfg(test)]
+use bootloader::{BootInfo, entry_point};
+
+#[cfg(test)]
+entry_point!(test_kernel_main);
+
+#[cfg(test)]
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
+    init();
+    test_main();
+    hlt_loop();
+}
+
+extern crate alloc;

@@ -19,7 +19,6 @@ pub fn _print(args: fmt::Arguments) {
     });
 }
 
-
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -76,9 +75,9 @@ pub struct Writer {
     buffer: &'static mut Buffer,
 }
 
-impl Writer{
-    pub fn write_byte(&mut self, byte: u8){
-        match byte{
+impl Writer {
+    pub fn write_byte(&mut self, byte: u8) {
+        match byte {
             b'\n' => self.new_line(),
             _ => {
                 if self.column_position >= BUFFER_WIDTH {
@@ -107,7 +106,6 @@ impl Writer{
         self.clear_row(BUFFER_HEIGHT - 1);
         self.column_position = 0;
     }
-
     fn clear_row(&mut self, row: usize) {
         let blank = ScreenChar {
             ascii_character: b' ',
@@ -117,14 +115,12 @@ impl Writer{
             self.buffer.chars[row][col].write(blank);
         }
     }
-
     pub fn write_string(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {
                 0x20..=0x7e | b'\n' => self.write_byte(byte),
                 _ => self.write_byte(0xfe),
             }
-
         }
     }
 }
