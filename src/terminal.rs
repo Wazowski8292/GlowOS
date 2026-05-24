@@ -45,7 +45,8 @@ pub fn command_runner(){
 }
 
 fn echo(cmd: Vec<String>) {
-    
+    print!("> ");
+
     for col in 1..=cmd.len() - 1 {
         print!("{} ", cmd[col]);
     }

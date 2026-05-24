@@ -2,6 +2,7 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
 use crate::print;
 use crate::println;
+use crate::serial_println;
 use crate::backspace;
 use lazy_static::lazy_static;
 
@@ -112,20 +113,21 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
 
     let scancode: u8 = unsafe { port.read() };
 
-if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
-    if let Some(key) = keyboard.process_keyevent(key_event) {
-        match key {
-            DecodedKey::Unicode('\n') => { println!(); terminal::command_runner(); }
-            DecodedKey::Unicode('\x08') => { backspace!(); }
-            DecodedKey::Unicode(character) if character.is_ascii_graphic() || character == ' ' =>
-            {
-                print!("{}", character);
-            }
+    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
+        if let Some(key) = keyboard.process_keyevent(key_event) {
+            //serial_println!("{:?}", scancode);
+            match key {
+                DecodedKey::Unicode('\n') => { println!(); terminal::command_runner(); }
+                DecodedKey::Unicode('\x08') => { backspace!(); }
+                DecodedKey::Unicode(character) if character.is_ascii_graphic() || character == ' ' ||  character == '\t'=>
+                {
+                    print!("{}", character);
+                }
 
-            _ => {}
+                _ => {}
+            }
         }
     }
-}
 
     unsafe {
         PICS.lock()

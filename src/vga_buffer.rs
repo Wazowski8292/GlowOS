@@ -109,6 +109,7 @@ impl Writer {
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
             b'\n' => self.new_line(),
+            b'\t' => self.tab(),
             _ => {
                 if self.column_position >= BUFFER_WIDTH {
                     self.new_line();
@@ -123,8 +124,12 @@ impl Writer {
                     color_code,
                 });
                 self.column_position += 1;
+                self.move_cursor();
             }
         }
+    }
+    fn tab(&mut self) {
+        self.write_string("    ");
     }
     fn new_line(&mut self) {
         for row in 1..BUFFER_HEIGHT {
@@ -135,6 +140,7 @@ impl Writer {
         }
         self.clear_row(BUFFER_HEIGHT - 1);
         self.column_position = 0;
+        self.move_cursor()
     }
     fn clear_row(&mut self, row: usize) {
         let blank = ScreenChar {
@@ -144,6 +150,7 @@ impl Writer {
         for col in 0..BUFFER_WIDTH {
             self.buffer.chars[row][col].write(blank);
         }
+        self.move_cursor();
     }
     pub fn clear_screen(&mut self){
         for row in 0..=BUFFER_HEIGHT - 1 {
@@ -153,7 +160,7 @@ impl Writer {
     pub fn write_string(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {
-                0x20..=0x7e | b'\n' => self.write_byte(byte),
+                0x20..=0x7e | b'\n' | b'\t' => self.write_byte(byte),
                 _ => self.write_byte(0xfe),
             }
         }
@@ -205,12 +212,32 @@ impl Writer {
         args
     }
     pub fn remove(& mut self) {
+        if self.column_position <  1{
+            return;
+        }
         let blank = ScreenChar {
             ascii_character: b' ',
             color_code: self.color_code,
         };
-        self.buffer.chars[BUFFER_HEIGHT - 1][self.column_position].write(blank);
         self.column_position -= 1;
+        self.buffer.chars[BUFFER_HEIGHT - 1][self.column_position].write(blank);
+        self.move_cursor();
+    }
+    fn move_cursor(& self) {
+        let position = (((BUFFER_HEIGHT - 1) * BUFFER_WIDTH) + self.column_position) as u16;
+
+        unsafe {
+            let mut index_register = Port::<u8>::new(0x3D4);
+            let mut data_register = Port::<u8>::new(0x3D5);
+
+            // 1. Send High Byte of position
+            index_register.write(0x0Eu8);
+            data_register.write(((position >> 8) & 0xFF) as u8);
+
+            // 2. Send Low Byte of position
+            index_register.write(0x0Fu8);
+            data_register.write((position & 0xFF) as u8);
+        }
     }
 }
 

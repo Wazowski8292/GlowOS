@@ -1,3 +1,10 @@
+/*
+TODO:
+    Merge linked list,
+    Add more commands to terminal
+    
+
+*/
 #![no_std]
 #![no_main]
 #![feature(custom_test_frameworks)]
@@ -33,3 +40,4 @@ fn panic(info: &PanicInfo) -> ! {
 fn panic(info: &PanicInfo) -> ! {
     os::test_panic_handler(info)
 }
+

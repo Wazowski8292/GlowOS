@@ -5,6 +5,7 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
 
+pub mod pci;
 pub mod gdt;
 pub mod interrupts;
 pub mod memory;
@@ -75,7 +76,7 @@ pub fn init(boot_info: &'static BootInfo) {
     unsafe { interrupts::PICS.lock().initialize() };
     x86_64::instructions::interrupts::enable();
     allocator::alloc_init(boot_info);
-    vga_buffer::disable_cursor();
+    pci::init();
 }
 
 pub fn hlt_loop() -> ! {
@@ -85,14 +86,14 @@ pub fn hlt_loop() -> ! {
 }
 
 #[cfg(test)]
-use bootloader::{BootInfo, entry_point};
+use bootloader::{entry_point};
 
 #[cfg(test)]
 entry_point!(test_kernel_main);
 
 #[cfg(test)]
-fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
-    init();
+fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
+    init(boot_info);
     test_main();
     hlt_loop();
 }

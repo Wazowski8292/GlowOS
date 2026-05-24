@@ -1,11 +1,15 @@
-use linked_list_allocator::LockedHeap;
- use bootloader::BootInfo;
+use fixed_size_blocks::FixedSizeBlockAllocator;
+use bootloader::BootInfo;
 
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::null_mut;
+
+pub mod bump;
+pub mod linked_list;
+pub mod fixed_size_blocks;
 
 pub struct Dummy;
 
@@ -67,3 +71,34 @@ pub fn alloc_init(boot_info: &'static BootInfo){
 
     init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 }
+
+pub struct Locked<A> {
+    inner: spin::Mutex<A>,
+}
+
+impl<A> Locked<A> {
+    pub const fn new(inner: A) -> Self {
+        Locked {
+            inner: spin::Mutex::new(inner),
+        }
+    }
+
+    pub fn lock(&self) -> spin::MutexGuard<A> {
+        self.inner.lock()
+    }
+}
+
+fn align_up(addr: usize, align: usize) -> usize {
+    let remainder = addr % align;
+    if remainder == 0 {
+        addr
+    } else {
+        addr - remainder + align
+    }
+}
+
+/*
+fn align_up(addr: usize, align: usize) -> usize {
+    (addr + align - 1) & !(align - 1)
+}
+*/
