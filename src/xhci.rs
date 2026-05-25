@@ -46,6 +46,8 @@ pub struct XhciDriver {
     extended_capabilities_offset: u32,
 }
 
+pub static mut XHCI_DRIVER: Option<XhciDriver> = None;
+
 impl XhciDriver {
     pub unsafe fn new(xhci_mmio_base: u64) -> Self {
         let cap_regs = xhci_mmio_base as *const XhciCapabilityRegisters;
@@ -214,6 +216,8 @@ pub fn init(boot_info: &'static BootInfo){
         let xhci_base_vaddr = boot_info.physical_memory_offset + xhci_phys_addr;
         let xhci_driver = unsafe { XhciDriver::new(xhci_base_vaddr) };
         xhci_driver.log_capability_registers();
+
+        unsafe { XHCI_DRIVER =  Some(xhci_driver)};
     } else {
         println!("Error: No hardware xHCI controller detected on the PCI bus.");
     }

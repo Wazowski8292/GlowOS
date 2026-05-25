@@ -2,6 +2,7 @@ use crate::println;
 use crate::print;
 use crate::get_words;
 use crate::clear_screen;
+use crate::xhci::XHCI_DRIVER;
 
 use alloc::{vec::Vec, string::String};
 
@@ -11,7 +12,7 @@ struct Command {
     description: &'static str,
 }
 
-static COMMANDS: [Command; 4] = [
+static COMMANDS: [Command; 5] = [
     Command {
         name: "",
         function: help,
@@ -31,6 +32,11 @@ static COMMANDS: [Command; 4] = [
         name: "clear",
         function: clear,
         description: "It clears the screen"
+    },
+    Command {
+        name: "xhci_log_register",
+        function: xhci_logs,
+        description: "It shows xHCI's log capability registers"
     },
 ];
 
@@ -60,7 +66,7 @@ pub fn command_runner(){
     };
 
     for cmd_entry in COMMANDS.iter() {
-        if cmd_entry.name == cmd[0] {
+        if cmd_entry.name == cmd[0].to_lowercase() {
             (cmd_entry.function)(cmd);
             return;
         }
@@ -84,6 +90,16 @@ fn help(_cmd : Vec<String>) {
         println!("{}", command.description);
     }
 }
+
 fn clear(_cmd: Vec<String>) {
     clear_screen!();
+}
+
+fn xhci_logs(_cmd: Vec<String>) {
+    #[allow(static_mut_refs)]
+    let xhci_driver = unsafe { 
+        XHCI_DRIVER.as_ref().expect("xHCI not initialized!") 
+    };
+
+    xhci_driver.log_capability_registers();
 }
