@@ -2,7 +2,9 @@
 TODO:
     Merge linked list,
     Add more commands to terminal
-    
+    Scroll up and down -> No clear line when chars reach it
+    Add a history of commands
+    Add a way to insert letter in the middles of words without erraizing them
 
 */
 #![no_std]
@@ -14,7 +16,6 @@ TODO:
 use bootloader::{BootInfo, entry_point};
 use core::panic::PanicInfo;
 use os::println;
-use os::print;
 use os::write_byte;
 
 entry_point!(kernel_main);
@@ -54,7 +55,7 @@ pub fn print_logo() {
             write_byte!(logo_rows[row][col]); 
         }
     }
-    print!("\n\n");
+    println!("\n\n");
 }
 
 #[cfg(not(test))]
