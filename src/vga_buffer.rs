@@ -1,6 +1,11 @@
 use alloc::{vec::Vec, string::String};
 
 #[macro_export]
+macro_rules! write_byte {
+    ($args:expr) => ($crate::vga_buffer::WRITER.lock().write_byte($args));
+}
+
+#[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
 }

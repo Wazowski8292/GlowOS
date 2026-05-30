@@ -14,7 +14,7 @@ struct Command {
     description: &'static str,
 }
 
-static COMMANDS: [Command; 7] = [
+static COMMANDS: &[Command] = &[
     Command {
         name: "",
         function: help,
