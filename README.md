@@ -2,6 +2,17 @@
 
 ---
 
+## Index
+
+1. [How to Install and Run](#how-to-install-and-run)
+2. [Terminal Commands](#terminal-commands)
+3. [Technical Details](#technical-details)
+4. [Todo](#todo)
+5. [License](#license)
+6. [Contributing](#contributing)
+
+---
+
 ## How to Install and Run
 
 ### Prerequisites
@@ -30,8 +41,24 @@ Before running GlowOS, ensure you have the following installed on your system:
 3. **Run the OS:**
    Execute the provided bash script to compile the kernel and launch it inside a QEMU virtual machine:
    ```bash
-   cargo run
+   chmod +x your_script_name.sh  # Replace with your actual script name if needed
+   ./your_script_name.sh
    ```
+
+---
+
+## Terminal Commands
+
+> Every command must be prefixed with `$`. For example: `$help`
+
+| Command | Description |
+|---|---|
+| `$help` | Displays the name of all commands and a short description of each. |
+| `$echo` | Prints anything you pass in. Arguments are separated by a space when displayed. |
+| `$clear` | Clears the screen. |
+| `$set_color` | Changes the color of the text and/or background. |
+| `$update_color` | Updates all text on screen to use the currently set color. |
+| `$xhci_log_register` | Shows xHCI's log capability registers. |
 
 ---
 
