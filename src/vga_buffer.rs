@@ -63,10 +63,9 @@ macro_rules! update_color {
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     use x86_64::instructions::interrupts;
-
-    interrupts::without_interrupts(|| {
-        WRITER.lock().write_fmt(args).unwrap();
-    });
+    if let Some(mut writer) = WRITER.try_lock() {
+        writer.write_fmt(args).ok();
+    };
 }
 
 #[allow(dead_code)]
@@ -305,7 +304,7 @@ impl Writer {
         }
     }
     pub fn set_color(&mut self, cmd: Vec<String>){
-        let mut text: [Color; 2] = [ Color::Yellow, Color::Black
+        let mut text: [Color; 2] = [
                 Color::from_u8(self.color_code.0 & 0xFF).unwrap_or(Color::Yellow), 
                 Color::from_u8((self.color_code.0 >> 4 ) & 0xFF).unwrap_or(Color::Black)
             ];
