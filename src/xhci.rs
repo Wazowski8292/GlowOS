@@ -26,8 +26,22 @@ pub struct XhciCapabilityRegisters {
     pub hccparams2: Volatile<u32>,
 }
 
+#[repr(C)]
+pub struct XhciOperationalRegisters {
+    pub usbcmd: Volatile<u32>,
+    pub usbsts: Volatile<u32>,
+    pub pagesize: Volatile<u32>,
+    pub reserved1: [Volatile<u32>; 2],
+    pub dnctrl: Volatile<u32>,
+    pub crcr: Volatile<u64>,
+    pub reserved2: [Volatile<u32>; 4],
+    pub dcbaap: Volatile<u64>,
+    pub config: Volatile<u32>,
+}
+
 pub struct XhciDriver {
     cap_regs: *const XhciCapabilityRegisters,
+    op_regs: *const XhciOperationalRegisters,
     op_regs_offset: usize,
 
     max_device_slots: u8,
@@ -73,8 +87,11 @@ impl XhciDriver {
         let light_reset_capability = (hccparams1 & (1 << 5)) != 0;
         let extended_capabilities_offset = ((hccparams1 >> 16) & 0xFFFF) * 4;
 
+        let op_regs = (xhci_mmio_base + caplength as u64) as *const XhciOperationalRegisters;
+
         Self {
             cap_regs,
+            op_regs,
             op_regs_offset: caplength,
             max_device_slots,
             max_interrupters,
@@ -209,13 +226,26 @@ impl XhciDriver {
         println!("    Light Reset Available          : {}", self.light_reset_capability);
         println!();
     }
+    pub fn log_operational_registers(&self) {
+        unsafe {
+            println!("===== Xhci Operational Registers ({:p}) =====", self.op_regs);
+            println!("    usbcmd                         : {:#x}", (*self.op_regs).usbcmd.read());
+            println!("    usbsts                         : {:#x}", (*self.op_regs).usbsts.read());
+            println!("    pagesize                       : {:#x}", (*self.op_regs).pagesize.read());
+            println!("    dnctrl                         : {:#x}", (*self.op_regs).dnctrl.read());
+            println!("    crcr                           : {:#x}", (*self.op_regs).crcr.read());
+            println!("    dcbaap                         : {:#x}", (*self.op_regs).dcbaap.read());
+            println!("    config                         : {:#x}", (*self.op_regs).config.read());
+            println!();
+        }
+    }
 }
-
 pub fn init(boot_info: &'static BootInfo){
     if let Some(xhci_phys_addr) = pci::init() {
         let xhci_base_vaddr = boot_info.physical_memory_offset + xhci_phys_addr;
         let xhci_driver = unsafe { XhciDriver::new(xhci_base_vaddr) };
         xhci_driver.log_capability_registers();
+        xhci_driver.log_operational_registers();
 
         unsafe { XHCI_DRIVER =  Some(xhci_driver)};
     } else {

@@ -10,6 +10,7 @@
 4. [Todo](#todo)
 5. [License](#license)
 6. [Contributing](#contributing)
+7. [Current State](#current-state)
 
 ---
 
@@ -38,17 +39,26 @@ Before running GlowOS, ensure you have the following installed on your system:
    rustup component add llvm-tools-preview
    ```
 
-3. **Run the OS:**
+3. **Run the OS in QEMU:**
    Cargo run will automaticly execute the provided bash script to compile the kernel and launch it inside a QEMU virtual machine:
    ```bash
    Cargo run
    ```
 
-3. **Test the OS:**
+4. **Test the OS:**
    Cargo test will automaticly execute the test that are provided:
    ```bash
    Cargo test
    ```
+
+5. **Run the OS in a USB:**
+   Cargo run will automaticly execute the provided bash script to compile the kernel and deploy it to the USB:
+   ```bash
+   cargo bootimage
+   chmod +x deploy_usb.sh
+   sudo ./deploy_usb.sh
+   ```
+
 
 ---
 
@@ -63,7 +73,9 @@ Before running GlowOS, ensure you have the following installed on your system:
 | `$clear` | Clears the screen. |
 | `$set_color` | Changes the color of the text and/or background. |
 | `$update_color` | Updates all text on screen to use the currently set color. |
-| `$xhci_log_register` | Shows xHCI's log capability registers. |
+| `$xhci_log` | Shows xHCI's logs. |
+| `$xhci_log_cap_register` | Shows xHCI's log capability registers. |
+| `$xhci_log_op_register` | Shows xHCI's log operational registers. |
 
 ---
 
@@ -82,14 +94,16 @@ Before running GlowOS, ensure you have the following installed on your system:
 - [x] Improve and make a somewhat finished README
 - [x] Scroll up and down → No clear line when chars reach it
 - [x] Add queue to the vga to stop dead locks -> I just don't print
-- [x] Add more commands to terminal
+- [x] Add a history of commands and access it with arrow keys
+- [ ] Reset xHCI controler
+- [ ] Add multithreading
 - [ ] Merge linked list
-- [ ] Add a history of commands and access it with arrow keys
 - [ ] Add a way to insert letters in the middle of words without erasing them
 - [ ] File system
 - [ ] Read and write to USB
 - [ ] Add a config file for visuals
 - [ ] Add userspace
+- [ ] Delete all dependecies
 
 ---
 
@@ -109,4 +123,4 @@ Feel free to open issues or submit pull requests.
 
 ## Current State
 
-![App Demo](assets/GlowOS.GIF)
+![Kernel Demo](assets/GlowOS.GIF)

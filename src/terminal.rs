@@ -47,9 +47,19 @@ static COMMANDS: &[Command] = &[
         description: "it changes all of the text colors to be the one you are currently using"
     },
     Command {
-        name: "xhci_log_register",
+        name: "xhci_log",
         function: xhci_logs,
+        description: "It shows xHCI's logs"
+    },
+    Command {
+        name: "xhci_log_cap_register",
+        function: xhci_cap_logs,
         description: "It shows xHCI's log capability registers"
+    },
+    Command {
+        name: "xhci_log_op_register",
+        function: xhci_op_logs,
+        description: "It shows xHCI's log operational registers"
     },
 ];
 
@@ -109,6 +119,24 @@ fn clear(_cmd: Vec<String>) {
     clear_screen!();
 }
 
+fn xhci_cap_logs(_cmd: Vec<String>) {
+    #[allow(static_mut_refs)]
+    let xhci_driver = unsafe { 
+        XHCI_DRIVER.as_ref().expect("xHCI not initialized!") 
+    };
+
+    xhci_driver.log_capability_registers();
+}
+
+fn xhci_op_logs(_cmd: Vec<String>) {
+    #[allow(static_mut_refs)]
+    let xhci_driver = unsafe { 
+        XHCI_DRIVER.as_ref().expect("xHCI not initialized!") 
+    };
+
+    xhci_driver.log_operational_registers();
+}
+
 fn xhci_logs(_cmd: Vec<String>) {
     #[allow(static_mut_refs)]
     let xhci_driver = unsafe { 
@@ -116,6 +144,7 @@ fn xhci_logs(_cmd: Vec<String>) {
     };
 
     xhci_driver.log_capability_registers();
+    xhci_driver.log_operational_registers();
 }
 
 fn change_color(cmd: Vec<String>){
