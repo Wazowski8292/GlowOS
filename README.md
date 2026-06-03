@@ -82,8 +82,8 @@ Before running GlowOS, ensure you have the following installed on your system:
 - [x] Improve and make a somewhat finished README
 - [x] Scroll up and down → No clear line when chars reach it
 - [x] Add queue to the vga to stop dead locks -> I just don't print
+- [x] Add more commands to terminal
 - [ ] Merge linked list
-- [ ] Add more commands to terminal
 - [ ] Add a history of commands and access it with arrow keys
 - [ ] Add a way to insert letters in the middle of words without erasing them
 - [ ] File system

@@ -5,6 +5,9 @@ use crate::println;
 use crate::backspace;
 use crate::scroll_up;
 use crate::scroll_down;
+use crate::last_line;
+use crate::get_older_cmd;
+use crate::get_younger_cmd;
 use lazy_static::lazy_static;
 
 use crate::gdt;
@@ -118,14 +121,15 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
         if let Some(key) = keyboard.process_keyevent(key_event) {
             match key {
                 DecodedKey::RawKey(KeyCode::PageDown) => {scroll_down!();}
-                DecodedKey::RawKey(KeyCode::ArrowDown) => {scroll_down!();}
+                DecodedKey::RawKey(KeyCode::ArrowDown) => {get_younger_cmd!();}
                 DecodedKey::RawKey(KeyCode::PageUp) => {scroll_up!();}
-                DecodedKey::RawKey(KeyCode::ArrowUp) => {scroll_up!();}
+                DecodedKey::RawKey(KeyCode::ArrowUp) => {get_older_cmd!();}
                 DecodedKey::Unicode('\n') => { println!(); terminal::command_runner(); }
                 DecodedKey::Unicode('\x08') => { backspace!(); }
                 DecodedKey::Unicode(character) if character.is_ascii_graphic() || character == ' ' ||  character == '\t'=>
                 {
                     print!("{}", character);
+                    last_line!();
                 }
 
                 _ => {}

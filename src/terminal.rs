@@ -4,6 +4,7 @@ use crate::get_words;
 use crate::clear_screen;
 use crate::set_color;
 use crate::update_color;
+use crate::reset_command_offset;
 use crate::xhci::XHCI_DRIVER;
 
 use alloc::{vec::Vec, string::String};
@@ -80,6 +81,7 @@ pub fn command_runner(){
     for cmd_entry in COMMANDS.iter() {
         if cmd_entry.name == cmd[0].to_lowercase() {
             (cmd_entry.function)(cmd);
+            reset_command_offset!();
             return;
         }
     }

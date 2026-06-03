@@ -1,5 +1,9 @@
 use alloc::{vec::Vec, string::String};
-use crate::serial_println;
+
+const COMMAND_AMOUNT: usize = 20;
+const SCROLL_BUFFER_HEIGHT: usize = 1000;
+const BUFFER_HEIGHT: usize = 25;
+const BUFFER_WIDTH: usize = 80;
 
 #[macro_export]
 macro_rules! write_byte {
@@ -18,16 +22,9 @@ macro_rules! println {
 }
 
 #[macro_export]
-macro_rules! last_row {
-    () => {
-        $crate::vga_buffer::WRITER.lock().get_last_row()
-    };
-}
-
-#[macro_export]
 macro_rules! get_words {
     () => {
-        $crate::vga_buffer::WRITER.lock().get_words()
+        $crate::vga_buffer::WRITER.lock().get_words(None)
     };
 }
 
@@ -70,6 +67,34 @@ macro_rules! scroll_up {
 macro_rules! scroll_down {
     () => {
         $crate::vga_buffer::WRITER.lock().scroll_down();
+    };
+}
+
+#[macro_export]
+macro_rules! last_line {
+    () => {
+        $crate::vga_buffer::WRITER.lock().last_line();
+    };
+}
+
+#[macro_export]
+macro_rules! get_older_cmd {
+    () => {
+        $crate::vga_buffer::WRITER.lock().get_older_cmd();
+    };
+}
+
+#[macro_export]
+macro_rules! get_younger_cmd {
+    () => {
+        $crate::vga_buffer::WRITER.lock().get_younger_cmd();
+    };
+}
+
+#[macro_export]
+macro_rules! reset_command_offset {
+    () => {
+        $crate::vga_buffer::WRITER.lock().reset_command_offset();
     };
 }
 
@@ -165,9 +190,7 @@ struct ScreenChar {
     color_code: ColorCode,
 }
 
-const SCROLL_BUFFER_HEIGHT: usize = 80;
-const BUFFER_HEIGHT: usize = 25;
-const BUFFER_WIDTH: usize = 80;
+
 
 use volatile::Volatile;
 
@@ -182,6 +205,9 @@ pub struct Writer {
     buffer: &'static mut Buffer,
     scroll_buffer: [[ScreenChar; BUFFER_WIDTH]; SCROLL_BUFFER_HEIGHT],
     scroll_offset: usize,
+    command_buffer: [[ScreenChar; BUFFER_WIDTH]; COMMAND_AMOUNT],
+    command_offset: usize,
+    command_added: usize,
 }
 
 impl Writer {
@@ -242,17 +268,23 @@ impl Writer {
                 _ => self.write_byte(0xfe),
             }
         }
+        self.redraw();
     }
-    pub fn get_last_row(&self) -> [u8; BUFFER_WIDTH] {
-        let mut row = [b' '; BUFFER_WIDTH];
+    fn get_row(&mut self, row: usize) -> [u8; BUFFER_WIDTH] {
+        let mut result = [b' '; BUFFER_WIDTH];
         for col in 0..BUFFER_WIDTH {
-            row[col] = self.scroll_buffer[SCROLL_BUFFER_HEIGHT - 2][col].ascii_character;
+            result[col] = self.scroll_buffer[row][col].ascii_character;
         }
 
-        row
+        if result[0] == b'$' {
+            self.new_command();
+        }
+
+        result
     }
-    pub fn get_words(&self) -> Vec<String> {
-        let row = self.get_last_row();
+    pub fn get_words(&mut self, amount: Option<usize>) -> Vec<String> {
+        let search_row = amount.unwrap_or(SCROLL_BUFFER_HEIGHT - 2);
+        let row = self.get_row(search_row);
 
         let len = row.iter()
             .position(|&c| c == b'\n')
@@ -300,9 +332,10 @@ impl Writer {
         self.column_position -= 1;
         self.scroll_buffer[SCROLL_BUFFER_HEIGHT - 1][self.column_position] = blank;
         self.move_cursor();
+        self.redraw();
     }
     fn move_cursor(&mut self) {
-        let position = (((SCROLL_BUFFER_HEIGHT - 1) * BUFFER_WIDTH) + self.column_position) as u16;
+        let position = (((SCROLL_BUFFER_HEIGHT - self.scroll_offset - 1) * BUFFER_WIDTH) + self.column_position) as u16;
 
         unsafe {
             let mut index_register = Port::<u8>::new(0x3D4);
@@ -316,7 +349,6 @@ impl Writer {
             index_register.write(0x0Fu8);
             data_register.write((position & 0xFF) as u8);
         }
-        self.redraw();
     }
     pub fn set_color(&mut self, cmd: Vec<String>){
         let mut text: [Color; 2] = [
@@ -378,7 +410,6 @@ impl Writer {
     }
     pub fn scroll_down(&mut self) {
         self.scroll_offset += 1; 
-        serial_println!("{}", self.scroll_offset);
         self.move_cursor();
         self.redraw();
     }
@@ -396,6 +427,50 @@ impl Writer {
                 self.buffer.chars[display_row][col].write(ch[col]);
             }
         }
+    }
+    pub fn last_line(&mut self) {
+        if self.scroll_offset < SCROLL_BUFFER_HEIGHT - BUFFER_HEIGHT {
+            self.scroll_offset = SCROLL_BUFFER_HEIGHT - BUFFER_HEIGHT;
+        }
+    }
+    fn new_command(&mut self) {
+        for row in (2..COMMAND_AMOUNT).rev() {
+            self.command_buffer[row] = self.command_buffer[row - 1]
+        }
+        self.command_added += 1;
+        self.command_buffer[1] = self.scroll_buffer[SCROLL_BUFFER_HEIGHT - 2];
+    }
+    fn get_command(&mut self) {
+        if self.command_offset == 0 {
+            return;
+        }
+
+        self.scroll_buffer[SCROLL_BUFFER_HEIGHT - 1] = self.command_buffer[self.command_offset - 1];
+        self.column_position = 1;
+        for n in self.get_words(Some(SCROLL_BUFFER_HEIGHT - 1)).iter() {
+            self.column_position += n.len();
+        }
+        self.column_position = self.column_position.min(BUFFER_WIDTH);
+
+        self.move_cursor();
+        self.redraw();
+    }
+    pub fn get_older_cmd(&mut self) {
+        if self.command_offset < COMMAND_AMOUNT.min(self.command_added) {
+            self.command_offset +=1;
+
+            self.get_command();
+        }
+    }
+    pub fn get_younger_cmd(&mut self) {
+        if self.command_offset > 0 {
+            self.command_offset -= 1;
+
+            self.get_command();
+        }
+    }
+    pub fn reset_command_offset(&mut self) {
+        self.command_offset = 0;
     }
 }
 
@@ -420,7 +495,13 @@ lazy_static! {
             ascii_character: b' ',
             color_code: ColorCode::new(Color::Yellow, Color::Black),
         }; BUFFER_WIDTH]; SCROLL_BUFFER_HEIGHT],
-        scroll_offset : SCROLL_BUFFER_HEIGHT - 24,
+        scroll_offset : SCROLL_BUFFER_HEIGHT - BUFFER_HEIGHT,
+        command_buffer: [[ScreenChar {
+            ascii_character: b' ',
+            color_code: ColorCode::new(Color::Yellow, Color::Black),
+        }; BUFFER_WIDTH]; COMMAND_AMOUNT],
+        command_offset: 0,
+        command_added: 1,
     });
 }
 
