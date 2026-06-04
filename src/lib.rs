@@ -69,7 +69,7 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
-use bootloader::BootInfo;
+use bootloader_api::BootInfo;
 
 pub fn init(boot_info: &'static BootInfo) {
     allocator::alloc_init(boot_info);

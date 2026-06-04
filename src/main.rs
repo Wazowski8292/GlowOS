@@ -1,27 +1,25 @@
-/*
-TODO:
-    Merge linked list,
-    Add more commands to terminal
-    Scroll up and down -> No clear line when chars reach it
-    Add a history of commands
-    Add a way to insert letter in the middles of words without erraizing them
-
-*/
 #![no_std]
 #![no_main]
 #![feature(custom_test_frameworks)]
 #![test_runner(os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-use bootloader::{BootInfo, entry_point};
 use core::panic::PanicInfo;
 use os::println;
 use os::write_byte;
 
-entry_point!(kernel_main);
+use bootloader_api::{BootInfo, config::Mapping};
 
-fn kernel_main(boot_info: &'static BootInfo) -> ! {
-    print_logo();
+pub static BOOTLOADER_CONFIG: bootloader_api::BootloaderConfig = {
+    let mut config = bootloader_api::BootloaderConfig::new_default();
+    config.mappings.physical_memory = Some(Mapping::Dynamic); 
+    config
+};
+
+bootloader_api::entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
+
+fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
+    /*print_logo();
 
     os::init(boot_info);
 
@@ -32,7 +30,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     #[cfg(test)]
     test_main();
-
+    */
     os::hlt_loop();
 }
 

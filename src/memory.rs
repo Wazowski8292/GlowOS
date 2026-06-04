@@ -4,7 +4,7 @@ use x86_64::{
         FrameAllocator, FrameDeallocator, Mapper, OffsetPageTable, Page, PageTable, PhysFrame, Size4KiB, PageTableFlags
     },
 };
-use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use bootloader_api::info::{MemoryRegions, MemoryRegionKind};
 
 pub struct MemoryKernelManager {
     pub mapper: OffsetPageTable<'static>,
@@ -83,12 +83,12 @@ unsafe impl FrameAllocator<Size4KiB> for EmptyFrameAllocator {
 }
 
 pub struct BootInfoFrameAllocator {
-    memory_map: &'static MemoryMap,
+    memory_map: &'static MemoryRegions,
     next: usize,
 }
 
 impl BootInfoFrameAllocator {
-    pub unsafe fn init(memory_map: &'static MemoryMap) -> Self {
+    pub unsafe fn init(memory_map: &'static MemoryRegions) -> Self {
         BootInfoFrameAllocator {
             memory_map,
             next: 0,
@@ -96,13 +96,12 @@ impl BootInfoFrameAllocator {
     }
 
     fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
-        let regions = self.memory_map.iter();
-        let usable_regions = regions
-            .filter(|r| r.region_type == MemoryRegionType::Usable);
-        let addr_ranges = usable_regions
-            .map(|r| r.range.start_addr()..r.range.end_addr());
-        let frame_addresses = addr_ranges.flat_map(|r| r.step_by(4096));
-        frame_addresses.map(|addr| PhysFrame::containing_address(PhysAddr::new(addr)))
+        self.memory_map
+            .iter()
+            .filter(|r| r.kind == MemoryRegionKind::Usable)
+            .flat_map(|r| r.start..r.end)
+            .step_by(4096)
+            .map(|addr| PhysFrame::containing_address(PhysAddr::new(addr)))
     }
 }
 

@@ -5,7 +5,7 @@ use x86_64::structures::paging::{Page, PhysFrame, Mapper, Size4KiB, Translate};
 use x86_64::VirtAddr;
 use crate::memory::MEMORY_MANAGER;
 use volatile::Volatile;
-use bootloader::BootInfo;
+use bootloader_api::BootInfo;
 
 #[repr(C)]
 struct AllocationHeader {
@@ -242,7 +242,7 @@ impl XhciDriver {
 }
 pub fn init(boot_info: &'static BootInfo){
     if let Some(xhci_phys_addr) = pci::init() {
-        let xhci_base_vaddr = boot_info.physical_memory_offset + xhci_phys_addr;
+        let xhci_base_vaddr = boot_info.physical_memory_offset.into_option().expect("Physical memory offset not found") + xhci_phys_addr;
         let xhci_driver = unsafe { XhciDriver::new(xhci_base_vaddr) };
         xhci_driver.log_capability_registers();
         xhci_driver.log_operational_registers();
