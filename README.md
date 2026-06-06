@@ -9,9 +9,10 @@
 3. [Technical Details](#technical-details)
 4. [Todo](#todo)
 5. [Long term goals](#long-term-goals)
-6. [License](#license)
-7. [Contributing](#contributing)
-8. [Current State](#current-state)
+6. [Current State](#current-state)
+7. [AI](#AI)
+8. [License](#license)
+9. [Contributing](#contributing)
 
 ---
 
@@ -44,13 +45,13 @@ Before running GlowOS, ensure you have the following installed on your system:
 3. **Run the OS in QEMU:**
    Cargo run will automaticly execute the provided bash script to compile the kernel and launch it inside a QEMU virtual machine:
    ```bash
-   Cargo run
+   make run
    ```
 
 4. **Test the OS:**
    Cargo test will automaticly execute the test that are provided:
    ```bash
-   Cargo test
+   make test
    ```
 
 5. **Run the OS in a USB:**
@@ -87,7 +88,7 @@ Before running GlowOS, ensure you have the following installed on your system:
 - **Memory Management**: The kernel implements **paging** for virtual memory and **dynamic memory allocation** for heap usage at runtime.
 - **Interrupts**: Interrupt handling is set up to manage hardware and software events.
 - **USB**: USB support via **xHCI** is currently in progress.
-- **Testing**: The kernel includes **cargo tests** for verifying core functionality.
+- **Testing**: The kernel includes **cargo tests** for verifying core functionality, this function has to be updated to the new uefi code.
 
 ---
 
@@ -119,6 +120,18 @@ Before running GlowOS, ensure you have the following installed on your system:
 
 ---
 
+## Current State
+
+![Kernel Demo](assets/GlowOS.GIF)
+
+---
+
+## AI
+
+During the development of this project AI has been use only to help gather information about kernels, make simple bash scripts, or add simple functions that have been **verifide by me**. Every other single line of code in this repository has been **writen by me** or has been copy and pasted from some amazing blogs that i have found online.
+
+---
+
 ## License
 
 This project is licensed under the **MIT License**.
@@ -130,9 +143,3 @@ See the `LICENSE` file for more details.
 
 Contributions, ideas, and optimizations are welcome!
 Feel free to open issues or submit pull requests.
-
----
-
-## Current State
-
-![Kernel Demo](assets/GlowOS.GIF)
