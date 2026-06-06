@@ -6,22 +6,24 @@
 
 use core::panic::PanicInfo;
 use kernel::println;
+use kernel::serial_println;
 use kernel::write_byte;
 
-use bootloader_api::{BootInfo, config::Mapping};
 
-pub static BOOTLOADER_CONFIG: bootloader_api::BootloaderConfig = {
-    let mut config = bootloader_api::BootloaderConfig::new_default();
-    config.mappings.physical_memory = Some(Mapping::Dynamic); 
+use bootloader_api::{BootInfo, config::Mapping, BootloaderConfig};
+
+pub static BOOTLOADER_CONFIG: BootloaderConfig = {
+    let mut config = BootloaderConfig::new_default();
+    config.mappings.physical_memory = Some(Mapping::Dynamic);
     config
 };
-
 bootloader_api::entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
-    /*print_logo();
+    kernel::init(boot_info);
+    
 
-    os::init(boot_info);
+    /*print_logo();
 
     println!("\n============ Init when correctly ===========\n");
 
@@ -59,7 +61,7 @@ pub fn print_logo() {
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    println!("{}", info);
+    serial_println!("{}", info);
     kernel::hlt_loop();
 }
 

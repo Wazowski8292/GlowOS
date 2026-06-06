@@ -66,10 +66,10 @@ impl XhciDriver {
     pub unsafe fn new(xhci_mmio_base: u64) -> Self {
         let cap_regs = xhci_mmio_base as *const XhciCapabilityRegisters;
 
-        let caplength = (*cap_regs).caplength.read() as usize;
-        let hcsparams1 = (*cap_regs).hcsparams1.read();
-        let hcsparams2 = (*cap_regs).hcsparams2.read();
-        let hccparams1 = (*cap_regs).hccparams1.read();
+        let caplength = unsafe {(*cap_regs).caplength.read()} as usize;
+        let hcsparams1 = unsafe {(*cap_regs).hcsparams1.read()};
+        let hcsparams2 = unsafe {(*cap_regs).hcsparams2.read()};
+        let hccparams1 = unsafe {(*cap_regs).hccparams1.read()};
 
         let max_device_slots = (hcsparams1 & 0xFF) as u8;
         let max_interrupters = ((hcsparams1 >> 8) & 0x7FF) as u16;
@@ -240,7 +240,7 @@ impl XhciDriver {
         }
     }
 }
-pub fn init(boot_info: &'static BootInfo){
+pub fn init(boot_info: &'static mut BootInfo){
     if let Some(xhci_phys_addr) = pci::init() {
         let xhci_base_vaddr = boot_info.physical_memory_offset.into_option().expect("Physical memory offset not found") + xhci_phys_addr;
         let xhci_driver = unsafe { XhciDriver::new(xhci_base_vaddr) };

@@ -88,7 +88,7 @@ Before running GlowOS, ensure you have the following installed on your system:
 - **Memory Management**: The kernel implements **paging** for virtual memory and **dynamic memory allocation** for heap usage at runtime.
 - **Interrupts**: Interrupt handling is set up to manage hardware and software events.
 - **USB**: USB support via **xHCI** is currently in progress.
-- **Testing**: The kernel includes **cargo tests** for verifying core functionality, this function has to be updated to the new uefi code.
+- **Testing**: The kernel includes **cargo tests** for verifying core functionality.
 
 ---
 

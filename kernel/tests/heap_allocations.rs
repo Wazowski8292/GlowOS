@@ -8,12 +8,12 @@ extern crate alloc;
 
 use alloc::{boxed::Box, vec::Vec};
 use kernel::allocator::HEAP_SIZE;
-use bootloader::{BootInfo, entry_point};
+use bootloader_api::{BootInfo, entry_point};
 use core::panic::PanicInfo;
 
-entry_point!(main);
+bootloader_api::entry_point!(main);
 
-fn main(boot_info: &'static BootInfo) -> ! {
+fn main(boot_info: &'static mut BootInfo) -> ! {
     kernel::init(boot_info);
 
     test_main();

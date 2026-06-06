@@ -16,11 +16,13 @@ if [ ! -f "$USB_IMAGE" ]; then
 fi
 
 qemu-system-x86_64 \
-    -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" \
-    -drive if=pflash,format=raw,file=target/OVMF_VARS.fd \
-    -drive format=raw,file="$OS_IMAGE" \
-    -device qemu-xhci \
-    -device usb-storage,drive=stick \
-    -drive if=none,id=stick,format=raw,file="$USB_IMAGE" \
-    -m 256M \
-    -serial stdio
+  -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" \
+  -drive if=pflash,format=raw,file=target/OVMF_VARS.fd \
+  -drive format=raw,file="$OS_IMAGE" \
+  -device qemu-xhci \
+  -device usb-storage,drive=stick \
+  -drive if=none,id=stick,format=raw,file="$USB_IMAGE" \
+  -m 256M \
+  -serial stdio \
+  -vga std \
+  -display sdl

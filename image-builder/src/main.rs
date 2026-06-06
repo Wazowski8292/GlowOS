@@ -2,7 +2,7 @@ use bootloader::UefiBoot;
 use std::path::PathBuf;
 
 fn main() {
-    let kernel = PathBuf::from("../kernel/target/x86_64-os/debug/os");
+    let kernel = PathBuf::from(std::env::args().nth(1).unwrap());
     
     if !kernel.exists() {
         eprintln!("Error: kernel not found at {:?}", kernel);

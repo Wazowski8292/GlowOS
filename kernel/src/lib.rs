@@ -14,7 +14,7 @@ pub mod serial;
 pub mod vga_buffer;
 pub mod allocator;
 pub mod terminal;
-pub mod framebuffer;
+pub mod renderer;
 
 use core::panic::PanicInfo;
 
@@ -72,13 +72,14 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 
 use bootloader_api::BootInfo;
 
-pub fn init(boot_info: &'static BootInfo) {
-    allocator::alloc_init(boot_info);
-    gdt::init();
-    interrupts::init_idt();
-    unsafe { interrupts::PICS.lock().initialize() };
-    x86_64::instructions::interrupts::enable();
-    xhci::init(boot_info)
+pub fn init(boot_info: &'static mut BootInfo) {
+    renderer::init(boot_info);
+    //allocator::alloc_init(boot_info);
+    //gdt::init();
+    //interrupts::init_idt();
+    //unsafe { interrupts::PICS.lock().initialize() };
+    //x86_64::instructions::interrupts::enable();
+    //xhci::init(boot_info)
 }
 
 pub fn hlt_loop() -> ! {
@@ -88,13 +89,13 @@ pub fn hlt_loop() -> ! {
 }
 
 #[cfg(test)]
-use bootloader::{entry_point};
+use bootloader_api::{entry_point};
 
 #[cfg(test)]
-entry_point!(test_kernel_main);
+bootloader_api::entry_point!(test_kernel_main);
 
 #[cfg(test)]
-fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
+fn test_kernel_main(boot_info: &'static mut BootInfo) -> ! {
     init(boot_info);
     test_main();
     hlt_loop();
