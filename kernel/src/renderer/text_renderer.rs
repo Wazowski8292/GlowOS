@@ -18,18 +18,21 @@ pub struct FontRenderer {
 }
 
 impl FontRenderer {
-    pub fn new(max_chars_x: usize, max_chars_y: usize,) -> Self{
+    pub fn new(max_chars_x: usize, max_chars_y: usize) -> Self{
         let white = Color::new(255, 255, 255);
+        let scale = 2;
+        let max_x = (max_chars_x / CHAR_SIZE / scale) as usize;
+        let max_y = (max_chars_y / CHAR_SIZE / scale) as usize;
 
         let letter = Letter {
             ascii_character: 0,
             color: white,
         };
         Self {
-            buffer: vec![letter; max_chars_x * max_chars_y],
-            scale: 2,
-            max_chars_x: (max_chars_x / CHAR_SIZE) as usize,
-            max_chars_y: (max_chars_y / CHAR_SIZE) as usize,
+            buffer: vec![letter; max_x * max_y],
+            scale: scale,
+            max_chars_x: max_x,
+            max_chars_y: max_y,
         }
     }
 

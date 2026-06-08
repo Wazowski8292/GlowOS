@@ -25,7 +25,7 @@ unsafe impl GlobalAlloc for Dummy {
 }
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
-pub const HEAP_SIZE: usize = 4 * 1024 * 1024; // 100 MiB
+pub const HEAP_SIZE: usize = 1 * 1024 * 1024; // 1 MiB
 
 use x86_64::{
     structures::paging::{
@@ -123,7 +123,7 @@ impl<A> Locked<A> {
         self.inner.lock()
     }
 }
-
+/*
 fn align_up(addr: usize, align: usize) -> usize {
     let remainder = addr % align;
     if remainder == 0 {
@@ -132,9 +132,8 @@ fn align_up(addr: usize, align: usize) -> usize {
         addr - remainder + align
     }
 }
+*/
 
-/*
 fn align_up(addr: usize, align: usize) -> usize {
     (addr + align - 1) & !(align - 1)
 }
-*/

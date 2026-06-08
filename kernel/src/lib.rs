@@ -77,12 +77,10 @@ pub fn init(boot_info: &'static mut BootInfo) {
     use serial_println;
 
     let framebuffer = boot_info.framebuffer.as_mut().unwrap() as *mut FrameBuffer;
-    serial_println!("fb ptr before: {:p}", framebuffer);
 
     gdt::init();
     allocator::alloc_init(boot_info);
     
-    serial_println!("fb ptr after:  {:p}", framebuffer);
     unsafe { renderer::init(&mut *framebuffer) };
     //interrupts::init_idt();
     //unsafe { interrupts::PICS.lock().initialize() };

@@ -25,7 +25,7 @@ Before running GlowOS, ensure you have the following installed on your system:
 - **Rust**: You will need the Nightly toolchain and the `llvm-tools-preview` component for kernel development.
 - **QEMU**: The emulator used to run the OS.
 -**Open Virtual Machine Firmware**: An extra program for QEMU to run properly the kernel.
-- **Bash**: A Unix-like shell to execute the startup script.
+- **Bash**: A Unix-like shell to execute the startup script. You can run it and build it manually with cargo run if not.
 
 ### Setup Instructions
 
@@ -98,7 +98,8 @@ Before running GlowOS, ensure you have the following installed on your system:
 - [x] Scroll up and down → No clear line when chars reach it
 - [x] Add queue to the vga to stop dead locks -> I just don't print
 - [x] Add a history of commands and access it with arrow keys
-- [ ] Add a font renderer
+- [x] Add a font renderer
+- [ ] Add print functions
 - [ ] Reset xHCI controler
 - [ ] Add multithreading
 - [ ] Add a way to insert letters in the middle of words without erasing them
