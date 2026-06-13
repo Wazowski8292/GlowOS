@@ -99,9 +99,9 @@ Before running GlowOS, ensure you have the following installed on your system:
 - [x] Add queue to the vga to stop dead locks -> I just don't print
 - [x] Add a font renderer
 - [x] Add print functions
+- [x] Add abstraction for the print functions
 - [ ] Scroll up and down → No clear line when chars reach it
 - [ ] Add a history of commands and access it with arrow keys
-- [ ] Add abstraction for the print functions
 - [ ] Reset xHCI controler
 - [ ] Add a way to insert letters in the middle of words without erasing them
 

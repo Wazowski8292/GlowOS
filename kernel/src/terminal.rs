@@ -1,11 +1,11 @@
-/*
 use crate::println;
 use crate::print;
-use crate::get_words;
-use crate::clear_screen;
-use crate::set_color;
-use crate::update_color;
-use crate::reset_command_offset;
+use crate::renderer::{get_renderer, text_renderer::FontRenderer};
+//use crate::get_words;
+//use crate::clear_screen;
+//use crate::set_color;
+//use crate::update_color;
+//use crate::reset_command_offset;
 use crate::xhci::XHCI_DRIVER;
 
 use alloc::{vec::Vec, string::String};
@@ -37,6 +37,7 @@ static COMMANDS: &[Command] = &[
         function: clear,
         description: "It clears the screen"
     },
+    /*
     Command {
         name: "set_color",
         function: change_color,
@@ -46,7 +47,7 @@ static COMMANDS: &[Command] = &[
         name: "update_color",
         function: update_color,
         description: "it changes all of the text colors to be the one you are currently using"
-    },
+    },*/
     Command {
         name: "xhci_log",
         function: xhci_logs,
@@ -70,8 +71,7 @@ static COMMANDS: &[Command] = &[
 ];
 
 pub fn command_runner(){
-    let mut cmd = get_words!();
-
+    let mut cmd = get_renderer().font_renderer.parse_last_line();
 
     if cmd.is_empty() {
         return;
@@ -97,7 +97,7 @@ pub fn command_runner(){
     for cmd_entry in COMMANDS.iter() {
         if cmd_entry.name == cmd[0].to_lowercase() {
             (cmd_entry.function)(cmd);
-            reset_command_offset!();
+            //reset_command_offset!();
             return;
         }
     }
@@ -122,7 +122,7 @@ fn help(_cmd : Vec<String>) {
 }
 
 fn clear(_cmd: Vec<String>) {
-    clear_screen!();
+    get_renderer().clear_screen();
 }
 
 fn xhci_cap_logs(_cmd: Vec<String>) {
@@ -152,7 +152,7 @@ fn xhci_logs(_cmd: Vec<String>) {
     xhci_driver.log_capability_registers();
     xhci_driver.log_operational_registers();
 }
-
+/*
 fn change_color(cmd: Vec<String>){
     if cmd.len() <= 1 {
         println!("Not enough args for set_color");
@@ -168,7 +168,7 @@ fn change_color(cmd: Vec<String>){
 fn update_color(_cmd: Vec<String>) {
     update_color!();
 }
-
+*/
 fn holy_c(_cmd: Vec<String>) {
     println!("                                    -------                                
                                 -------------                             
@@ -216,4 +216,3 @@ fn holy_c(_cmd: Vec<String>) {
                                     *******                                
 ");
 }
-*/

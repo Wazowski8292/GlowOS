@@ -11,22 +11,18 @@ macro_rules! println {
 
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
-    x86_64::instructions::interrupts::disable();
-
     use core::fmt::Write;
-    
-    #[allow(static_mut_refs)]
-    let renderer = unsafe{RENDERER.as_mut().unwrap()};
-
-    renderer.font_renderer.write_fmt(args).ok();
-
-    x86_64::instructions::interrupts::enable();
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        #[allow(static_mut_refs)]
+        let renderer = unsafe { RENDERER.as_mut().unwrap() };
+        renderer.font_renderer.write_fmt(args).ok();
+    });
 }
 
-pub fn get_font_renderer() -> &'static mut FontRenderer {
+pub fn get_renderer() -> &'static mut Renderer {
     unsafe { 
         #[allow(static_mut_refs)]
-        &mut RENDERER.as_mut().unwrap().font_renderer 
+        RENDERER.as_mut().unwrap() 
     }
 }
 
@@ -43,7 +39,7 @@ pub struct Renderer {
     info: FrameBufferInfo,
     buffer: &'static mut [u8],
     background_color: Color,
-    font_renderer: FontRenderer,
+    pub font_renderer: FontRenderer,
 }
 
 #[derive(Clone, Copy)]
@@ -122,6 +118,7 @@ impl Renderer {
                 self.put_pixel(x, y, self.background_color.clone());
             }
         }
+        self.font_renderer.clear_buffer();
     }
 }
 
@@ -133,5 +130,12 @@ pub fn init(framebuffer: &'static mut FrameBuffer){
     #[allow(static_mut_refs)]
     let renderer = unsafe{RENDERER.as_mut().unwrap()};
     renderer.clear_screen();
-    renderer.font_renderer.draw_buffer();
+    print!("Helo");
+    print!("Helo");
+    print!("Helo");
+    print!("Helo");
+    print!("Helo");
+    print!("Helo");
+    print!("Helo");
+    print!("Helo");
 }
