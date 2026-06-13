@@ -1,12 +1,45 @@
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::renderer::_print(format_args!($($arg)*)));
+}
+
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
+
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    x86_64::instructions::interrupts::disable();
+
+    use core::fmt::Write;
+    
+    #[allow(static_mut_refs)]
+    let renderer = unsafe{RENDERER.as_mut().unwrap()};
+
+    renderer.font_renderer.write_fmt(args).ok();
+
+    x86_64::instructions::interrupts::enable();
+}
+
+pub fn get_font_renderer() -> &'static mut FontRenderer {
+    unsafe { 
+        #[allow(static_mut_refs)]
+        &mut RENDERER.as_mut().unwrap().font_renderer 
+    }
+}
+
 use bootloader_api::info::{FrameBufferInfo, PixelFormat, FrameBuffer};
 use text_renderer::FontRenderer;
+use core::fmt;
 
 pub mod text_renderer;
 pub mod text_font;
 
-pub static mut RENDERER: Option<Rernderer> = None; 
+pub static mut RENDERER: Option<Renderer> = None; 
 
-pub struct Rernderer {
+pub struct Renderer {
     info: FrameBufferInfo,
     buffer: &'static mut [u8],
     background_color: Color,
@@ -26,7 +59,7 @@ impl Color {
     }
 }
 
-impl Rernderer {
+impl Renderer {
     pub fn new(framebuffer: &'static mut FrameBuffer, background_color: Color) -> Self{
         let fb = framebuffer;
         let info = fb.info();
@@ -95,55 +128,10 @@ impl Rernderer {
 pub fn init(framebuffer: &'static mut FrameBuffer){
     let bg_color = Color::new(0,0,0);
 
-    unsafe {RENDERER = Some(Rernderer::new(framebuffer, bg_color))}; 
+    unsafe {RENDERER = Some(Renderer::new(framebuffer, bg_color))}; 
 
     #[allow(static_mut_refs)]
     let renderer = unsafe{RENDERER.as_mut().unwrap()};
     renderer.clear_screen();
-        renderer.font_renderer.print_string("                                -------                                
-                                -------------                             
-                            --------------------                         
-                        ---------------------------                      
-                    ---------------------------------                   
-                    ---------------------------------------                
-                ---------------------------------------------             
-            ---------------------------------------------------          
-        ---------------------------------------------------------       
-    --------------------------             --------------------------   
-    -----------------------.                     .----------------------- 
-    ---------------------.                           .------------------=++
-    -------------------                                 -------------=+++++
-    -----------------:                                   :--------=++++++++
-    ----------------                                       ----++++++++++++
-    ---------------                   :::                  .+++++++++++++++
-    --------------               -------------           ++++++++++++++++++
-    -------------              -----------------     .+++++++++++++++++++++
-    -------------            :-------------------:-+++++++---++++++++++++++
-    ------------            .------------------=++++++++++  .++++++++++++++
-    ------------            ----------------+++++++++++        ++++++++++++
-    ------------            -------------+++++++++++++++++  .++++++++++++++
-    ------------            ----------***+++++++++++++++++  .++++++++++++++
-    ------------            -------*********++++++++++++++  .++++++++++++++
-    ------------             --=***************+++++++++++  .++++++++++++++
-    -------------             *******************..++++++++++++++++++++++++
-    -------------              *****************     .+++++++++++++++++++++
-    --------------               +***********+           ++++++++++++++++++
-    ---------------                   ...                   +++++++++++++++
-    ------------****                                       ****++++++++++++
-    ---------********+                                   +********+++++++++
-    -----+*************.                               .**************+++++
-    --+******************+                           +*******************++
-    ***********************=                     =*********************** 
-        *************************             *************************    
-        *********************************************************       
-            ***************************************************          
-                *********************************************             
-                    ***************************************                
-                    *********************************                   
-                        **************************                       
-                            *******************                          
-                                *************                             
-                                    *******                                
-    ");
     renderer.font_renderer.draw_buffer();
 }

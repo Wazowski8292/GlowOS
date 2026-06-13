@@ -3,6 +3,10 @@ use alloc::vec::Vec;
 use alloc::vec;
 
 const CHAR_SIZE: usize = 8;
+const DEFAULT_LETTER: Letter = Letter {
+    ascii_character : ' ',
+    color: Color { r: 255, g: 255, b: 255},
+};
 
 #[derive(Clone, Copy)]
 struct Letter {
@@ -21,17 +25,12 @@ pub struct FontRenderer {
 
 impl FontRenderer {
     pub fn new(max_chars_x: usize, max_chars_y: usize) -> Self{
-        let white = Color::new(255, 255, 255);
         let scale = 2;
         let max_x = (max_chars_x / CHAR_SIZE / scale) as usize;
         let max_y = (max_chars_y / CHAR_SIZE / scale) as usize;
 
-        let letter = Letter {
-            ascii_character: ' ',
-            color: white,
-        };
         Self {
-            buffer: vec![letter; max_x * max_y],
+            buffer: vec![DEFAULT_LETTER; max_x * max_y],
             scale: scale,
             max_chars_x: max_x,
             max_chars_y: max_y,
@@ -100,5 +99,20 @@ impl FontRenderer {
                 _ => {self.print_char(letter)},
             }
         }
+    }
+
+    pub fn backspace(&mut self){
+        
+        self.x_pos = (self.x_pos - 1).max(0);
+        self.buffer[self.x_pos + self.y_pos * self.max_chars_x] = DEFAULT_LETTER;
+    }
+}
+
+use core::fmt;
+
+impl fmt::Write for FontRenderer {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.print_string(s);
+        Ok(())
     }
 }

@@ -1,3 +1,4 @@
+/*
 use crate::println;
 use crate::print;
 use crate::get_words;
@@ -215,3 +216,4 @@ fn holy_c(_cmd: Vec<String>) {
                                     *******                                
 ");
 }
+*/

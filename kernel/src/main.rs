@@ -7,7 +7,7 @@
 use core::panic::PanicInfo;
 use kernel::println;
 use kernel::serial_println;
-use kernel::write_byte;
+//use kernel::write_byte;
 
 
 use bootloader_api::{BootInfo, config::Mapping, BootloaderConfig};
@@ -52,7 +52,7 @@ pub fn print_logo() {
 
     for row in 0..logo_rows.len() {
         for col in 0..logo_rows[row].len() {
-            write_byte!(logo_rows[row][col]); 
+            //write_byte!(logo_rows[row][col]); 
         }
     }
     println!("\n\n");

@@ -11,7 +11,6 @@ pub mod gdt;
 pub mod interrupts;
 pub mod memory;
 pub mod serial;
-pub mod vga_buffer;
 pub mod allocator;
 pub mod terminal;
 pub mod renderer;
@@ -80,9 +79,15 @@ pub fn init(boot_info: &'static mut BootInfo) {
     allocator::alloc_init(boot_info);
     
     unsafe { renderer::init(&mut *framebuffer) };
-    //interrupts::init_idt();
-    //unsafe { interrupts::PICS.lock().initialize() };
-    //x86_64::instructions::interrupts::enable();
+    interrupts::init_idt();
+    unsafe { 
+        let mut pics = interrupts::PICS.lock();
+        pics.initialize();
+        pics.write_masks(0xFC, 0xFF);
+    };
+
+    x86_64::instructions::interrupts::enable();
+
     //xhci::init(boot_info)
 }
 
