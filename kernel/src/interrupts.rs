@@ -129,7 +129,7 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
                 //DecodedKey::RawKey(KeyCode::PageUp) => {scroll_up!();}
                 //DecodedKey::RawKey(KeyCode::ArrowUp) => {get_older_cmd!();}
                 DecodedKey::Unicode('\n') => { println!(); terminal::command_runner(); }
-                //DecodedKey::Unicode('\x08') => { get_renderer().font_renderer.backspace(); }
+                DecodedKey::Unicode('\x08') => { get_renderer().font_renderer.backspace(); }
                 DecodedKey::Unicode(character) if character.is_ascii_graphic() || character == ' ' ||  character == '\t'=>
                 {
                     print!("{}", character);
