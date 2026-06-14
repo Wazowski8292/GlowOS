@@ -225,6 +225,7 @@ pub fn char_to_font_index(c: char) -> Option<usize> {
         '|'  => Some(124),
         '}'  => Some(125),
         '~'  => Some(126),
+        '■'  => Some(255),
         _    => None,
     }
 }

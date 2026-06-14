@@ -20,6 +20,8 @@ pub struct FontRenderer {
     max_chars_y: usize,
     x_pos: usize,
     y_pos: usize,
+    cursor_x_pos: usize,
+    cursor_y_pos: usize,
     background_color: Color,
     font_color: Color,
 }
@@ -37,7 +39,9 @@ impl FontRenderer {
             max_chars_x: max_x,
             max_chars_y: max_y,
             x_pos: 0,
+            cursor_x_pos: 0,
             y_pos: 0,
+            cursor_y_pos: 0,
             background_color: bg_color,
             font_color: text_color,
         }
@@ -105,13 +109,14 @@ impl FontRenderer {
             color: self.font_color,
         };
         self.set(msg);
+        self.draw_cursor();
         self.draw_char(self.x_pos, self.y_pos, msg);
     }
 
     pub fn print_string(&mut self, msg: &str) {
         for letter in msg.chars() {
             match letter {
-                '\n' => {self.y_pos += 1; self.x_pos = 0},
+                '\n' => {self.y_pos += 1; self.x_pos = 0; self.draw_cursor()},
                 '\t' => {self.print_string("    ")},
                 _ => {self.print_char(letter)},
             }
@@ -121,6 +126,7 @@ impl FontRenderer {
     pub fn backspace(&mut self) {
         self.buffer[self.x_pos + self.y_pos * self.max_chars_x] = DEFAULT_LETTER;
         self.draw_char(self.x_pos, self.y_pos, DEFAULT_LETTER);
+        self.draw_cursor();
 
         self.x_pos -= if self.x_pos == 0 {
             0
@@ -176,6 +182,22 @@ impl FontRenderer {
         }
         self.x_pos = 0;
         self.y_pos = 0;
+    }
+    
+    fn clear_cursor(&mut self) {
+        self.draw_char(self.cursor_x_pos, self.cursor_y_pos, DEFAULT_LETTER);
+    }
+    
+    fn draw_cursor(&mut self) {
+        self.clear_cursor();
+        let cursor = Letter {
+            ascii_character: '■',
+            color: self.font_color,
+        };
+        self.cursor_x_pos = self.x_pos + 1;
+        self.cursor_y_pos = self.y_pos;
+
+        self.draw_char(self.cursor_x_pos, self.cursor_y_pos, cursor);
     }
 }
 
