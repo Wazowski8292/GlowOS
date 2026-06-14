@@ -73,7 +73,7 @@ impl FontRenderer {
         }
     }
 
-    fn draw_char(&self, x_pos: usize, y_pos: usize, letter: Letter) {
+    fn draw_char(&self, x_pos: usize, y_pos: usize, letter: Letter, reverse: bool) {
         #[allow(static_mut_refs)]
         let renderer = unsafe { RENDERER.as_mut().unwrap() };
         let bitmap: u64 = SYS_FONT[char_to_font_index(letter.ascii_character).unwrap_or(0) as usize];
@@ -81,17 +81,19 @@ impl FontRenderer {
         for y in 0..CHAR_SIZE {
             for x in 0..CHAR_SIZE {
                 let bit = y * CHAR_SIZE + x;
+                let bit_set = (bitmap >> bit) & 1 == 1;
+                let color = if bit_set != reverse {
+                    letter.color
+                } else {
+                    self.background_color
+                };
+
                 for rel_x in 0..self.scale {
                     for rel_y in 0..self.scale {
                         renderer.put_pixel(
                             x_pos * CHAR_SIZE * self.scale + x * self.scale + rel_x,
                             y_pos * CHAR_SIZE * self.scale + y * self.scale + rel_y,
-                            {
-                                if (bitmap >> bit) & 1 == 1 {
-                                    letter.color
-                                } else {
-                                    self.background_color
-                                }});
+                            color);
                     }
                 }
             }
@@ -106,7 +108,7 @@ impl FontRenderer {
             let letter = self.get(col, row);
 
             if letter.ascii_character != ' ' {
-                self.draw_char(col, row, letter);
+                self.draw_char(col, row, letter, false);
             }
         }
     }
@@ -118,7 +120,7 @@ impl FontRenderer {
         };
         self.set(msg);
         self.draw_cursor(self.x_pos, self.y_pos);
-        self.draw_char(self.x_pos, self.y_pos, msg);
+        self.draw_char(self.x_pos, self.y_pos, msg, false);
     }
 
     pub fn print_string(&mut self, msg: &str) {
@@ -133,7 +135,7 @@ impl FontRenderer {
 
     pub fn backspace(&mut self) {
         self.buffer[self.x_pos + self.y_pos * self.max_chars_x] = DEFAULT_LETTER;
-        self.draw_char(self.x_pos, self.y_pos, DEFAULT_LETTER);
+        self.draw_char(self.x_pos, self.y_pos, DEFAULT_LETTER, false);
 
         self.x_pos -= if self.x_pos == 0 {
             0
@@ -195,13 +197,13 @@ impl FontRenderer {
     }
     
     fn clear_cursor(&mut self) {
-        self.draw_char(self.cursor_x_pos, self.cursor_y_pos, self.get(self.cursor_x_pos, self.cursor_y_pos));
+        self.draw_char(self.cursor_x_pos, self.cursor_y_pos, self.get(self.cursor_x_pos, self.cursor_y_pos), false);
     }
     
     fn draw_cursor(&mut self, x_pos: usize, y_pos: usize) {
         self.clear_cursor();
         let cursor = Letter {
-            ascii_character: '■',
+            ascii_character: ' ', //■
             color: self.font_color,
         };
         self.cursor_x_pos = x_pos + 1;
@@ -214,9 +216,11 @@ impl FontRenderer {
             self.draw_cursor_timer = 0;
         }
 
-        if self.draw_cursor{ 
-            self.draw_char(self.cursor_x_pos, self.cursor_y_pos, cursor);
+        if !self.draw_cursor{ 
+            return;
         }
+        self.draw_char(self.cursor_x_pos, self.cursor_y_pos, cursor, true);
+
     }
 
     pub fn blink_cursor(&mut self) {
