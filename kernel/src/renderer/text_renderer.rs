@@ -18,19 +18,23 @@ pub struct FontRenderer {
     scale: usize,
     max_chars_x: usize,
     max_chars_y: usize,
+    max_screen_chars_y: usize,
     x_pos: usize,
     y_pos: usize,
     cursor_x_pos: usize,
     cursor_y_pos: usize,
+    draw_cursor_timer: usize,
+    max_draw_cursor_timer: usize,
+    draw_cursor: bool,
     background_color: Color,
     font_color: Color,
 }
 
 impl FontRenderer {
-    pub fn new(max_chars_x: usize, max_chars_y: usize, bg_color: Color) -> Self{
+    pub fn new(max_chars_x: usize, max_screen_chars_y: usize, bg_color: Color) -> Self{
         let scale = 2;
         let max_x = (max_chars_x / CHAR_SIZE / scale) as usize;
-        let max_y = (max_chars_y / CHAR_SIZE / scale) as usize;
+        let max_y = (max_screen_chars_y / CHAR_SIZE / scale) as usize;
         let text_color = Color::new(255, 255, 0);
 
         Self {
@@ -38,17 +42,21 @@ impl FontRenderer {
             scale: scale,
             max_chars_x: max_x,
             max_chars_y: max_y,
+            max_screen_chars_y: max_y,
             x_pos: 0,
-            cursor_x_pos: 0,
             y_pos: 0,
+            cursor_x_pos: 0,
             cursor_y_pos: 0,
+            draw_cursor_timer: 0,
+            max_draw_cursor_timer: 10,
+            draw_cursor: true,
             background_color: bg_color,
             font_color: text_color,
         }
     }
 
     fn get(&self, col: usize, row: usize) -> Letter {
-        if col < self.max_chars_x || row < self.max_chars_y{
+        if col < self.max_chars_x || row < self.max_screen_chars_y{
             self.buffer[row * self.max_chars_x + col]
         }
         else {
@@ -92,7 +100,7 @@ impl FontRenderer {
 
     pub fn draw_buffer(&self)  {
 
-        for i in 0..self.max_chars_x * self.max_chars_y {
+        for i in 0..self.max_chars_x * self.max_screen_chars_y {
             let col = i % self.max_chars_x;
             let row = i / self.max_chars_x;
             let letter = self.get(col, row);
@@ -109,14 +117,14 @@ impl FontRenderer {
             color: self.font_color,
         };
         self.set(msg);
-        self.draw_cursor();
+        self.draw_cursor(self.x_pos, self.y_pos);
         self.draw_char(self.x_pos, self.y_pos, msg);
     }
 
     pub fn print_string(&mut self, msg: &str) {
         for letter in msg.chars() {
             match letter {
-                '\n' => {self.y_pos += 1; self.x_pos = 0; self.draw_cursor()},
+                '\n' => {self.y_pos += 1; self.x_pos = 0; self.draw_cursor(self.x_pos, self.y_pos)},
                 '\t' => {self.print_string("    ")},
                 _ => {self.print_char(letter)},
             }
@@ -126,7 +134,7 @@ impl FontRenderer {
     pub fn backspace(&mut self) {
         self.buffer[self.x_pos + self.y_pos * self.max_chars_x] = DEFAULT_LETTER;
         self.draw_char(self.x_pos, self.y_pos, DEFAULT_LETTER);
-        self.draw_cursor();
+        self.draw_cursor(self.x_pos, self.y_pos);
 
         self.x_pos -= if self.x_pos == 0 {
             0
@@ -171,7 +179,7 @@ impl FontRenderer {
     }
 
     pub fn clear_buffer(&mut self) {
-        for i in 0..self.max_chars_x * self.max_chars_y {
+        for i in 0..self.max_chars_x * self.max_screen_chars_y {
             let col = i % self.max_chars_x;
             let row = i / self.max_chars_x;
             let letter = self.get(col, row);
@@ -182,22 +190,35 @@ impl FontRenderer {
         }
         self.x_pos = 0;
         self.y_pos = 0;
+        self.draw_cursor(self.x_pos, self.y_pos);
     }
     
     fn clear_cursor(&mut self) {
         self.draw_char(self.cursor_x_pos, self.cursor_y_pos, DEFAULT_LETTER);
     }
     
-    fn draw_cursor(&mut self) {
+    fn draw_cursor(&mut self, x_pos: usize, y_pos: usize) {
         self.clear_cursor();
         let cursor = Letter {
             ascii_character: '■',
             color: self.font_color,
         };
-        self.cursor_x_pos = self.x_pos + 1;
-        self.cursor_y_pos = self.y_pos;
+        self.cursor_x_pos = x_pos + 1;
+        self.cursor_y_pos = y_pos;
 
-        self.draw_char(self.cursor_x_pos, self.cursor_y_pos, cursor);
+        if self.draw_cursor{ 
+            self.draw_char(self.cursor_x_pos, self.cursor_y_pos, cursor);
+        }
+    }
+
+    pub fn blink_cursor(&mut self) {
+        self.draw_cursor_timer += 1;
+        if self.draw_cursor_timer >= self.max_draw_cursor_timer {
+            self.draw_cursor = !self.draw_cursor;
+            self.draw_cursor_timer = 0;
+        }
+
+        self.draw_cursor(self.cursor_x_pos - 1, self.cursor_y_pos);
     }
 }
 
