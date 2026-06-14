@@ -100,11 +100,12 @@ impl FontRenderer {
     }
 
     fn print_char(&mut self, c: char) {
-        let a = Letter {
+        let msg = Letter {
             ascii_character: c,
             color: self.font_color,
         };
-        self.set(a);
+        self.set(msg);
+        self.draw_char(self.x_pos, self.y_pos, msg);
     }
 
     pub fn print_string(&mut self, msg: &str) {
@@ -115,18 +116,17 @@ impl FontRenderer {
                 _ => {self.print_char(letter)},
             }
         }
-        self.draw_buffer();
     }
 
     pub fn backspace(&mut self) {
+        self.buffer[self.x_pos + self.y_pos * self.max_chars_x] = DEFAULT_LETTER;
+        self.draw_char(self.x_pos, self.y_pos, DEFAULT_LETTER);
+
         self.x_pos -= if self.x_pos == 0 {
             0
         } else {
            1
         };
-
-        self.buffer[self.x_pos + self.y_pos * self.max_chars_x] = DEFAULT_LETTER;
-        self.draw_char(self.x_pos, self.y_pos, DEFAULT_LETTER);
     }
 
     fn parse_line(&self, row: usize) -> Vec<String>{
