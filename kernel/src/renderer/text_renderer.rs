@@ -134,13 +134,14 @@ impl FontRenderer {
     pub fn backspace(&mut self) {
         self.buffer[self.x_pos + self.y_pos * self.max_chars_x] = DEFAULT_LETTER;
         self.draw_char(self.x_pos, self.y_pos, DEFAULT_LETTER);
-        self.draw_cursor(self.x_pos, self.y_pos);
 
         self.x_pos -= if self.x_pos == 0 {
             0
         } else {
            1
         };
+
+        self.draw_cursor(self.x_pos, self.y_pos);
     }
 
     fn parse_line(&self, row: usize) -> Vec<String>{
@@ -194,7 +195,7 @@ impl FontRenderer {
     }
     
     fn clear_cursor(&mut self) {
-        self.draw_char(self.cursor_x_pos, self.cursor_y_pos, DEFAULT_LETTER);
+        self.draw_char(self.cursor_x_pos, self.cursor_y_pos, self.get(self.cursor_x_pos, self.cursor_y_pos));
     }
     
     fn draw_cursor(&mut self, x_pos: usize, y_pos: usize) {
@@ -206,18 +207,19 @@ impl FontRenderer {
         self.cursor_x_pos = x_pos + 1;
         self.cursor_y_pos = y_pos;
 
-        if self.draw_cursor{ 
-            self.draw_char(self.cursor_x_pos, self.cursor_y_pos, cursor);
-        }
-    }
 
-    pub fn blink_cursor(&mut self) {
         self.draw_cursor_timer += 1;
         if self.draw_cursor_timer >= self.max_draw_cursor_timer {
             self.draw_cursor = !self.draw_cursor;
             self.draw_cursor_timer = 0;
         }
 
+        if self.draw_cursor{ 
+            self.draw_char(self.cursor_x_pos, self.cursor_y_pos, cursor);
+        }
+    }
+
+    pub fn blink_cursor(&mut self) {
         self.draw_cursor(self.cursor_x_pos - 1, self.cursor_y_pos);
     }
 }
