@@ -21,6 +21,7 @@ pub struct FontRenderer {
     max_screen_chars_y: usize,
     x_pos: usize,
     y_pos: usize,
+    scroll_y_pos: isize,
     cursor_x_pos: usize,
     cursor_y_pos: usize,
     draw_cursor_timer: usize,
@@ -45,6 +46,7 @@ impl FontRenderer {
             max_screen_chars_y: max_y,
             x_pos: 0,
             y_pos: 0,
+            scroll_y_pos: 0,
             cursor_x_pos: 0,
             cursor_y_pos: 0,
             draw_cursor_timer: 0,
@@ -56,7 +58,7 @@ impl FontRenderer {
     }
 
     fn get(&self, col: usize, row: usize) -> Letter {
-        if col < self.max_chars_x || row < self.max_screen_chars_y{
+        if col < self.max_chars_x && row < self.max_chars_y{
             self.buffer[row * self.max_chars_x + col]
         }
         else {
@@ -68,12 +70,17 @@ impl FontRenderer {
         self.buffer[self.y_pos * self.max_chars_x + self.x_pos] = letter;
         self.x_pos += 1;
         if self.x_pos >= self.max_chars_x {
-            self.x_pos = 0;
-            self.y_pos += 1;
+            self.new_line();
         }
     }
 
     fn draw_char(&self, x_pos: usize, y_pos: usize, letter: Letter, reverse: bool) {
+        let screen_y = y_pos as isize - self.scroll_y_pos;
+        if screen_y < 0 || screen_y >= self.max_screen_chars_y as isize {
+            return;
+        }
+        let screen_y = screen_y as usize;
+
         #[allow(static_mut_refs)]
         let renderer = unsafe { RENDERER.as_mut().unwrap() };
         let bitmap: u64 = SYS_FONT[char_to_font_index(letter.ascii_character).unwrap_or(0) as usize];
@@ -92,7 +99,7 @@ impl FontRenderer {
                     for rel_y in 0..self.scale {
                         renderer.put_pixel(
                             x_pos * CHAR_SIZE * self.scale + x * self.scale + rel_x,
-                            y_pos * CHAR_SIZE * self.scale + y * self.scale + rel_y,
+                            screen_y * CHAR_SIZE * self.scale + y * self.scale + rel_y,
                             color);
                     }
                 }
@@ -101,16 +108,40 @@ impl FontRenderer {
     }
 
     pub fn draw_buffer(&self)  {
-
-        for i in 0..self.max_chars_x * self.max_screen_chars_y {
-            let col = i % self.max_chars_x;
-            let row = i / self.max_chars_x;
-            let letter = self.get(col, row);
-
-            if letter.ascii_character != ' ' {
-                self.draw_char(col, row, letter, false);
+        for screen_y in 0..self.max_screen_chars_y {
+            let row_isize = screen_y as isize + self.scroll_y_pos;
+            if row_isize >= 0 {
+                let row = row_isize as usize;
+                for col in 0..self.max_chars_x {
+                    let letter = self.get(col, row);
+                    self.draw_char(col, row, letter, false);
+                }
             }
         }
+    }
+
+    fn clear_row(&mut self, row: usize) {
+        for col in 0..self.max_chars_x {
+            self.draw_char(col, row, DEFAULT_LETTER, false);
+        }
+    }
+
+    fn new_line(&mut self) {
+        self.y_pos += 1; 
+        self.x_pos = 0; 
+        if self.y_pos >= self.max_chars_y {
+            for _ in 0..self.max_chars_x {
+                self.buffer.push(DEFAULT_LETTER);
+            }
+            self.max_chars_y += 1;
+        }
+        
+        let max_scroll = (self.buffer.len() / self.max_chars_x).saturating_sub(self.max_screen_chars_y) as isize;
+        if self.scroll_y_pos < max_scroll {
+            self.scroll_y_pos = max_scroll;
+            self.draw_buffer();
+        }
+        self.draw_cursor(self.x_pos, self.y_pos);
     }
 
     fn print_char(&mut self, c: char) {
@@ -126,7 +157,7 @@ impl FontRenderer {
     pub fn print_string(&mut self, msg: &str) {
         for letter in msg.chars() {
             match letter {
-                '\n' => {self.y_pos += 1; self.x_pos = 0; self.draw_cursor(self.x_pos, self.y_pos)},
+                '\n' => {self.new_line()},
                 '\t' => {self.print_string("    ")},
                 _ => {self.print_char(letter)},
             }
@@ -182,17 +213,12 @@ impl FontRenderer {
     }
 
     pub fn clear_buffer(&mut self) {
-        for i in 0..self.max_chars_x * self.max_screen_chars_y {
-            let col = i % self.max_chars_x;
-            let row = i / self.max_chars_x;
-            let letter = self.get(col, row);
-
-            if letter.ascii_character != ' ' {
-                self.buffer[i] = DEFAULT_LETTER;
-            }
-        }
+        self.buffer.clear();
+        self.buffer.resize(self.max_chars_x * self.max_screen_chars_y, DEFAULT_LETTER);
+        self.max_chars_y = self.max_screen_chars_y;
         self.x_pos = 0;
         self.y_pos = 0;
+        self.scroll_y_pos = 0;
         self.draw_cursor(self.x_pos, self.y_pos);
     }
     
@@ -203,10 +229,10 @@ impl FontRenderer {
     fn draw_cursor(&mut self, x_pos: usize, y_pos: usize) {
         self.clear_cursor();
         let cursor = Letter {
-            ascii_character: ' ', //■
+            ascii_character: self.get(x_pos, y_pos).ascii_character, //■
             color: self.font_color,
         };
-        self.cursor_x_pos = x_pos + 1;
+        self.cursor_x_pos = x_pos;
         self.cursor_y_pos = y_pos;
 
 
@@ -224,7 +250,22 @@ impl FontRenderer {
     }
 
     pub fn blink_cursor(&mut self) {
-        self.draw_cursor(self.cursor_x_pos - 1, self.cursor_y_pos);
+        self.draw_cursor(self.cursor_x_pos, self.cursor_y_pos);
+    }
+
+    pub fn scroll_up(&mut self) {
+        if self.scroll_y_pos > 0 {
+            self.scroll_y_pos -= 1;
+            self.draw_buffer();
+        }
+    }
+
+    pub fn scroll_down(&mut self) {
+        let max_scroll = (self.buffer.len() / self.max_chars_x).saturating_sub(self.max_screen_chars_y) as isize;
+        if self.scroll_y_pos < max_scroll {
+            self.scroll_y_pos += 1;
+            self.draw_buffer();
+        }
     }
 }
 

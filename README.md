@@ -100,7 +100,8 @@ Before running GlowOS, ensure you have the following installed on your system:
 - [x] Add a font renderer
 - [x] Add print functions
 - [x] Add abstraction for the print functions
-- [ ] Scroll up and down → No clear line when chars reach it
+- [x] Scroll up and down → No clear line when chars reach it
+- [ ] Update the function that handled changing the text and background color
 - [ ] Add a history of commands and access it with arrow keys
 - [ ] Reset xHCI controler
 - [ ] Add a way to insert letters in the middle of words without erasing them
@@ -123,7 +124,7 @@ Before running GlowOS, ensure you have the following installed on your system:
 
 ## Current State
 
-![Kernel Demo](assets/GlowOS_8-6-2026.GIF)
+![Kernel Demo](assets/GlowOS_16-6-2026.GIF)
 
 ---
 

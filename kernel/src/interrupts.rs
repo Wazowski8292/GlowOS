@@ -125,9 +125,9 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
             match key {
-                //DecodedKey::RawKey(KeyCode::PageDown) => {scroll_down!();}
+                DecodedKey::RawKey(KeyCode::PageDown) => {get_renderer().font_renderer.scroll_down()}
                 //DecodedKey::RawKey(KeyCode::ArrowDown) => {get_younger_cmd!();}
-                //DecodedKey::RawKey(KeyCode::PageUp) => {scroll_up!();}
+                DecodedKey::RawKey(KeyCode::PageUp) => {get_renderer().font_renderer.scroll_up()}
                 //DecodedKey::RawKey(KeyCode::ArrowUp) => {get_older_cmd!();}
                 DecodedKey::Unicode('\n') => { println!(); terminal::command_runner(); }
                 DecodedKey::Unicode('\x08') => { get_renderer().font_renderer.backspace(); }

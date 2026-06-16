@@ -70,6 +70,7 @@ impl Renderer {
         }
     }
 
+    #[inline]
     pub fn put_pixel(&mut self ,x: usize, y: usize, color: Color) {
         if x >= self.info.width || y >= self.info.height {
             return;
@@ -112,13 +113,51 @@ impl Renderer {
         }
     }
 
+    #[inline]
+    pub fn put_pixel_unchecked(&mut self ,x: usize, y: usize, color: Color) {
+        let offset = (x + y * self.info.stride) * self.info.bytes_per_pixel;
+        match self.info.pixel_format {
+            PixelFormat::Rgb => {
+                self.buffer[offset]     = color.r;
+                self.buffer[offset + 1] = color.g;
+                self.buffer[offset + 2] = color.b;
+            },
+            PixelFormat::Bgr => {
+                self.buffer[offset]     = color.b;
+                self.buffer[offset + 1] = color.g;
+                self.buffer[offset + 2] = color.r;
+            },
+            PixelFormat::U8 => {
+                // Approximate luminance: 0.299R + 0.587G + 0.114B
+                let luma = (color.r as u16 * 299
+                    + color.g as u16 * 587
+                    + color.b as u16 * 114)
+                    / 1000;
+                self.buffer[offset] = luma as u8;
+            },
+            PixelFormat::Unknown { red_position, green_position, blue_position } => {
+                // Each position is the byte offset of that channel within the pixel slot.
+                let bpp = self.info.bytes_per_pixel;
+                if (red_position as usize) < bpp {
+                    self.buffer[offset + red_position as usize]   = color.r;
+                }
+                if (green_position as usize) < bpp {
+                    self.buffer[offset + green_position as usize] = color.g;
+                }
+                if (blue_position as usize) < bpp {
+                    self.buffer[offset + blue_position as usize]  = color.b;
+                }
+            },
+            _ => {} // future-proof against any new variants added upstream
+        }
+    }
+
     pub fn clear_screen(&mut self){
-        for x in 0..self.info.width {
-            for y in 0..self.info.height {
-                self.put_pixel(x, y, self.background_color.clone());
+        for y in 0..self.info.height {
+            for x in 0..self.info.width {
+                self.put_pixel_unchecked(x, y, self.background_color);
             }
         }
-        self.font_renderer.clear_buffer();
     }
 }
 

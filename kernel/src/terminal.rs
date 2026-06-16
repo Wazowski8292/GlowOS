@@ -123,6 +123,7 @@ fn help(_cmd : Vec<String>) {
 
 fn clear(_cmd: Vec<String>) {
     get_renderer().clear_screen();
+    get_renderer().font_renderer.clear_buffer();
 }
 
 fn xhci_cap_logs(_cmd: Vec<String>) {
