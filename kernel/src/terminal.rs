@@ -1,11 +1,7 @@
 use crate::println;
 use crate::print;
 use crate::renderer::get_renderer;
-//use crate::get_words;
-//use crate::clear_screen;
-//use crate::set_color;
-//use crate::update_color;
-//use crate::reset_command_offset;
+use crate::alloc::string::ToString;
 use crate::xhci::XHCI_DRIVER;
 
 use alloc::{vec::Vec, string::String};
@@ -30,14 +26,13 @@ static COMMANDS: &[Command] = &[
     Command {
         name: "echo",
         function: echo,
-        description: "It will print anything you put in. Args will be separated by a ' ' when   displaying it"
+        description: "It will print anything you put in. Args will be separated by a ' '"
     },
     Command {
         name: "clear",
         function: clear,
         description: "It clears the screen"
     },
-    /*
     Command {
         name: "set_color",
         function: change_color,
@@ -47,7 +42,7 @@ static COMMANDS: &[Command] = &[
         name: "update_color",
         function: update_color,
         description: "it changes all of the text colors to be the one you are currently using"
-    },*/
+    },
     Command {
         name: "xhci_log",
         function: xhci_logs,
@@ -116,9 +111,9 @@ fn echo(cmd: Vec<String>) {
 fn help(_cmd : Vec<String>) {
     println!();
     for command in COMMANDS.iter() {
-        print!("{}: ", command.name);
-        println!("{}", command.description);
+        println!("> {}: {}", command.name.to_uppercase(), command.description);
     }
+    println!();
 }
 
 fn clear(_cmd: Vec<String>) {
@@ -153,7 +148,7 @@ fn xhci_logs(_cmd: Vec<String>) {
     xhci_driver.log_capability_registers();
     xhci_driver.log_operational_registers();
 }
-/*
+
 fn change_color(cmd: Vec<String>){
     if cmd.len() <= 1 {
         println!("Not enough args for set_color");
@@ -163,13 +158,13 @@ fn change_color(cmd: Vec<String>){
         return;
     } 
 
-    set_color!(cmd);
+    get_renderer().font_renderer.change_font_color(cmd);
 }
 
 fn update_color(_cmd: Vec<String>) {
-    update_color!();
+    get_renderer().font_renderer.update_color();
 }
-*/
+
 fn holy_c(_cmd: Vec<String>) {
     println!("                                    -------                                
                                 -------------                             

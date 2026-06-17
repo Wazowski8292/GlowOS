@@ -1,6 +1,5 @@
 use crate::renderer::{text_font::{SYS_FONT, char_to_font_index}, Color, RENDERER};
 use alloc::{vec ,vec::Vec, string::String};
-use crate::alloc::string::ToString;
 
 const CHAR_SIZE: usize = 8;
 const DEFAULT_LETTER: Letter = Letter {
@@ -125,12 +124,6 @@ impl FontRenderer {
         }
     }
 
-    fn clear_row(&mut self, row: usize) {
-        for col in 0..self.max_chars_x {
-            self.draw_char(col, row, DEFAULT_LETTER, false);
-        }
-    }
-
     fn new_line(&mut self) {
         self.y_pos += 1; 
         self.x_pos = 0; 
@@ -215,7 +208,7 @@ impl FontRenderer {
 
     pub fn parse_last_line(&mut self) -> Vec<String>{
         let last_line = self.parse_line(self.y_pos - 1);
-        if last_line[0].chars().nth(0).unwrap_or(' ') == '$' {
+        if !last_line.is_empty() && last_line[0].chars().nth(0).unwrap_or(' ') == '$' {
             self.add_cmds(last_line.clone());
         }
 
@@ -326,6 +319,40 @@ impl FontRenderer {
         if self.scroll_y_pos < max_scroll {
             self.scroll_y_pos += 1;
             self.draw_buffer();
+        }
+    }
+
+    pub fn change_font_color(&mut self, color: Vec<String>) {
+        if Color::from_str(&color[1]).is_err() {
+            self.print_string("The font color doesn't match with any color");
+            return;
+        }
+        self.font_color = Color::from_str(&color[1]).unwrap_or(Color::new(255, 255, 255));
+
+        if color.len() == 1 || Color::from_str(&color[2]).is_err() {
+            self.print_string("The font color doesn't match with any color");
+            return;
+        }
+        #[allow(static_mut_refs)]
+        let renderer = unsafe { RENDERER.as_mut().unwrap() };
+
+        self.background_color = Color::from_str(&color[2]).unwrap_or(Color::new(0, 0, 0));
+        renderer.change_background_color(Color::from_str(&color[2]).unwrap_or(Color::new(0, 0, 0)));
+
+        self.draw_buffer();
+    }
+
+    pub fn update_color(&mut self) {
+        for row in 0..self.max_chars_y {
+            for col in 0..self.max_chars_x {
+                let letter = Letter {
+                    ascii_character: self.get(col, row).ascii_character,
+                    color: self.font_color,
+                };
+
+                self.buffer[col + row * self.max_chars_x] = letter;
+                self.draw_char(col, row, letter, false);
+            }
         }
     }
 }

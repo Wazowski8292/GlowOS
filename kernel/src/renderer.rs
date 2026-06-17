@@ -53,6 +53,28 @@ impl Color {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Color { r, g, b }
     }
+    
+    fn from_str(value: &str) -> Result<Self, ()> {
+        match value {
+            "black"     => Ok(Color::new(0,   0,   0  )),
+            "blue"      => Ok(Color::new(0,   0,   170)),
+            "green"     => Ok(Color::new(0,   170, 0  )),
+            "cyan"      => Ok(Color::new(0,   170, 170)),
+            "red"       => Ok(Color::new(170, 0,   0  )),
+            "magenta"   => Ok(Color::new(170, 0,   170)),
+            "brown"     => Ok(Color::new(170, 85,  0  )),
+            "lightGray" => Ok(Color::new(170, 170, 170)),
+            "darkGray"  => Ok(Color::new(85,  85,  85 )),
+            "lightBlue" => Ok(Color::new(85,  85,  255)),
+            "lightGreen"=> Ok(Color::new(85,  255, 85 )),
+            "lightCyan" => Ok(Color::new(85,  255, 255)),
+            "lightRed"  => Ok(Color::new(255, 85,  85 )),
+            "pink"      => Ok(Color::new(255, 85,  255)),
+            "yellow"    => Ok(Color::new(255, 255, 85 )),
+            "white"     => Ok(Color::new(255, 255, 255)),
+            _ => Err(()),
+        }
+    }
 }
 
 impl Renderer {
@@ -158,6 +180,10 @@ impl Renderer {
                 self.put_pixel_unchecked(x, y, self.background_color);
             }
         }
+    }
+
+    pub fn change_background_color(&mut self, color: Color) {
+        self.background_color = color;
     }
 }
 
