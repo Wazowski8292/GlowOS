@@ -1,5 +1,6 @@
 use crate::renderer::{text_font::{SYS_FONT, char_to_font_index}, Color, RENDERER};
 use alloc::{vec ,vec::Vec, string::String};
+use crate::alloc::string::ToString;
 
 const CHAR_SIZE: usize = 8;
 const DEFAULT_LETTER: Letter = Letter {
@@ -14,6 +15,8 @@ struct Letter {
 }
 
 pub struct FontRenderer {
+    cmd_buffer: Vec<String>,
+    cmd_index: usize,
     buffer: Vec<Letter>,
     scale: usize,
     max_chars_x: usize,
@@ -39,6 +42,8 @@ impl FontRenderer {
         let text_color = Color::new(255, 255, 0);
 
         Self {
+            cmd_buffer: Vec::new(),
+            cmd_index: 0,
             buffer: vec![DEFAULT_LETTER; max_x * max_y],
             scale: scale,
             max_chars_x: max_x,
@@ -208,8 +213,64 @@ impl FontRenderer {
         current
     }
 
-    pub fn parse_last_line(&self) -> Vec<String>{
-        self.parse_line(self.y_pos - 1)
+    pub fn parse_last_line(&mut self) -> Vec<String>{
+        let last_line = self.parse_line(self.y_pos - 1);
+        if last_line[0].chars().nth(0).unwrap_or(' ') == '$' {
+            self.add_cmds(last_line.clone());
+        }
+
+        last_line
+    }
+
+    fn add_cmds(&mut self, cmd: Vec<String>) {
+        if self.cmd_buffer.len() == 0 || self.cmd_buffer[self.cmd_buffer.len() - 1] != cmd.join(" ") {
+            self.cmd_buffer.push(cmd.join(" "));
+        }
+    }
+
+    fn clear_current_line(&mut self) {
+        let row = self.y_pos;
+        for col in 0..self.max_chars_x {
+            self.buffer[row * self.max_chars_x + col] = DEFAULT_LETTER;
+            self.draw_char(col, row, DEFAULT_LETTER, false);
+        }
+        self.x_pos = 0;
+        self.draw_cursor(self.x_pos, self.y_pos);
+    }
+
+    fn write_cmd(&mut self) {
+        if self.cmd_index >= self.cmd_buffer.len() {
+            return;
+        }
+        self.clear_current_line();
+        self.print_string(&self.cmd_buffer[self.cmd_index].clone());
+    }
+
+    pub fn history_older(&mut self) {
+        if self.cmd_buffer.is_empty() {
+            return;
+        }
+        if self.cmd_index > 0 {
+            self.cmd_index -= 1;
+        }
+        self.write_cmd();
+    }
+
+    pub fn history_newer(&mut self) {
+        if self.cmd_buffer.is_empty() {
+            return;
+        }
+        if self.cmd_index + 1 < self.cmd_buffer.len() {
+            self.cmd_index += 1;
+            self.write_cmd();
+        } else {
+            self.cmd_index = self.cmd_buffer.len();
+            self.clear_current_line();
+        }
+    }
+
+    pub fn reset_idx_cmd(&mut self) {
+        self.cmd_index = self.cmd_buffer.len();
     }
 
     pub fn clear_buffer(&mut self) {

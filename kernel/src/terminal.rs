@@ -97,7 +97,7 @@ pub fn command_runner(){
     for cmd_entry in COMMANDS.iter() {
         if cmd_entry.name == cmd[0].to_lowercase() {
             (cmd_entry.function)(cmd);
-            //reset_command_offset!();
+            get_renderer().font_renderer.reset_idx_cmd();
             return;
         }
     }
