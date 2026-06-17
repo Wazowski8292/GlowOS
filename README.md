@@ -116,7 +116,7 @@ Before running GlowOS, ensure you have the following installed on your system:
 
 ## Current State
 
-![Kernel Demo](assets/GlowOS_8-6-2026.GIF)
+![Kernel Demo](assets/GlowOS_16-6-2026.GIF)
 
 ---
 
