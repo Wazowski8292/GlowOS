@@ -1,10 +1,15 @@
 use crate::memory;
 use crate::pci;
+use crate::interrupts::wait;
 use crate::println;
 use x86_64::structures::paging::{Page, PhysFrame, Mapper, Size4KiB, Translate};
 use x86_64::VirtAddr;
 use crate::memory::MEMORY_MANAGER;
 use volatile::Volatile;
+
+const XHCI_USBCMD_START_STOP: u32 = 0;
+const XHCI_USBCMD_RESET: u32 = 1;
+const XHCI_USBSTS_NOT_READY: u32 = 11;
 
 #[repr(C)]
 struct AllocationHeader {
@@ -108,7 +113,6 @@ impl XhciDriver {
         }
     }
 
-    /// Class Method: Allocate coherent DMA memory block
     pub fn alloc_memory(&self, size: usize, alignment: usize) -> *mut u8 {
         if alignment == 0 {
             panic!("Attempted xhci DMA allocation with alignment 0!\n");
@@ -208,6 +212,7 @@ impl XhciDriver {
             None => panic!("Attempted to look up unmapped xHCI physical address!"),
         }
     }
+
     pub fn log_capability_registers(&self) {
         println!("===== Xhci Capability Registers ({:p}) =====", self.cap_regs);
         println!("    Length                         : {}", self.op_regs_offset);
@@ -225,6 +230,7 @@ impl XhciDriver {
         println!("    Light Reset Available          : {}", self.light_reset_capability);
         println!();
     }
+
     pub fn log_operational_registers(&self) {
         unsafe {
             println!("===== Xhci Operational Registers ({:p}) =====", self.op_regs);
@@ -238,14 +244,47 @@ impl XhciDriver {
             println!();
         }
     }
+
+    fn reset_host_controller(&mut self) {
+        unsafe {
+            let op = self.op_regs as *mut XhciOperationalRegisters;
+
+            let cmd = (*op).usbcmd.read() & !(1u32 << XHCI_USBCMD_START_STOP);
+            (*op).usbcmd.write(cmd);
+
+            let mut timeout = 200;
+            loop {
+                if (*op).usbsts.read() & (1 << XHCI_USBCMD_START_STOP) != 0 { break; }
+                if timeout == 0 { println!("Controller did not halt!"); return; }
+                wait(1);
+                timeout -= 1;
+            }
+
+            (*op).usbcmd.write((*op).usbcmd.read() | (1u32 << XHCI_USBCMD_RESET));
+
+            let mut timeout = 1000;
+            loop {
+                let cmd = (*op).usbcmd.read();
+                let sts = (*op).usbsts.read();
+                if (cmd & (1 << XHCI_USBCMD_RESET)) == 0 && (sts & (1 << XHCI_USBSTS_NOT_READY)) == 0 { break; }
+                if timeout == 0 { println!("Controller did not reset!"); return; }
+                wait(1);
+                timeout -= 1;
+            }
+
+            wait(50);
+        }
+    }
 }
+
 pub fn init(_phys_mem_offset: u64) {
     if let Some(xhci_virt_addr) = pci::init() {
         println!("xHCI virt addr: {:#x} (mmio-mapped)", xhci_virt_addr.as_u64());
         
-        let xhci_driver = unsafe { XhciDriver::new(xhci_virt_addr.as_u64()) };
+        let mut xhci_driver = unsafe { XhciDriver::new(xhci_virt_addr.as_u64()) };
         xhci_driver.log_capability_registers();
         xhci_driver.log_operational_registers();
+        xhci_driver.reset_host_controller();
 
         unsafe { XHCI_DRIVER = Some(xhci_driver) };
     } else {

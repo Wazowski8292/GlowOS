@@ -9,6 +9,9 @@ use crate::gdt;
 use crate::hlt_loop;
 use x86_64::structures::idt::PageFaultErrorCode;
 
+pub static mut TIMER: usize = 0;
+const HZ: u32 = 1000;
+
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
@@ -46,7 +49,7 @@ pub fn init_idt() {
         pics.write_masks(0xFC, 0xFF);
     };
 
-    init_pit(100); // 100 Hz timer → tick every 10 ms
+    init_pit(HZ);
 
     x86_64::instructions::interrupts::enable();
 }
@@ -109,6 +112,11 @@ impl InterruptIndex {
 extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
     get_renderer().font_renderer.blink_cursor();
 
+    #[allow(static_mut_refs)]
+    unsafe { 
+        TIMER += 1;
+    };
+
     unsafe {
         PICS.lock()
             .notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
@@ -160,4 +168,13 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
         PICS.lock()
             .notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
     }
+}
+
+pub fn wait(time: usize) {
+    #[allow(static_mut_refs)]
+    let mut timer = unsafe { TIMER };
+
+    while time / (HZ as usize) > timer {
+    }
+    timer = 0;
 }

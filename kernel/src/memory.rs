@@ -10,7 +10,6 @@ pub struct MemoryKernelManager {
     pub mapper: OffsetPageTable<'static>,
     pub dma_allocator: BitmapFrameAllocator,
     pub next_free_dma_vaddr: VirtAddr,
-    /// Bump pointer for MMIO virtual address allocations (0xFFFF_B000_0000_0000 range)
     pub next_free_mmio_vaddr: VirtAddr,
 }
 
@@ -62,16 +61,9 @@ pub fn map_xhci_contiguous_region(
     }
 }
 
-/// Map a physical MMIO region into the kernel's dedicated MMIO virtual address range
-/// (`0xFFFF_B000_0000_0000`).  Returns the virtual address corresponding to `phys_base`.
-///
-/// Pages are mapped with `PRESENT | WRITABLE | NO_CACHE | WRITE_THROUGH` so that
-/// hardware register reads/writes bypass the CPU cache entirely.
 pub fn map_mmio(phys_base: u64, size: usize) -> VirtAddr {
     assert!(size > 0, "map_mmio: size must be > 0");
 
-    // Align the physical base down to a page boundary and track the offset so
-    // we can return the exact virtual address the caller asked for.
     let page_offset  = phys_base & 0xFFF;
     let phys_aligned = phys_base - page_offset;
     let total_bytes  = (size as u64 + page_offset + 0xFFF) & !0xFFF;

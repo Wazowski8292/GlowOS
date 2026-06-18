@@ -1,7 +1,6 @@
 use crate::println;
 use crate::print;
 use crate::renderer::get_renderer;
-use crate::alloc::string::ToString;
 use crate::xhci::XHCI_DRIVER;
 
 use alloc::{vec::Vec, string::String};

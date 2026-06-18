@@ -94,10 +94,17 @@ Before running GlowOS, ensure you have the following installed on your system:
 ---
 
 ## Todo
-
-- [ ] Reset xHCI controler
-- [ ] Add a way to insert letters in the middle of words without erasing them
 - [x] In fisical hardware the cursor is represented for some reason as a letter
+- [x] Reset xHCI controler
+- [ ] Add DCBAA to xHCI controler
+- [ ] Add Command Ring to xHCI controler
+- [ ] Add Runtime Registers to xHCI controler
+- [ ] Add Event Ring to xHCI controler
+- [ ] Start xHCI controler
+- [ ] Send commands to xHCI controler
+- [ ] Exted capability registers xHCI controler
+- [ ] xHCI port reset
+- [ ] Add a way to insert letters in the middle of words without erasing them
 - [ ] In fisical hardware the cursor is not blinking
 
 ---
