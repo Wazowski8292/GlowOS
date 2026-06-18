@@ -23,9 +23,9 @@
 Before running GlowOS, ensure you have the following installed on your system:
 
 - **Rust**: You will need the Nightly toolchain and the `llvm-tools-preview` component for kernel development.
-- **QEMU**: The emulator used to run the OS.
--**Open Virtual Machine Firmware**: An extra program for QEMU to run properly the kernel.
-- **Bash**: A Unix-like shell to execute the startup script. You can run it and build it manually with cargo run if not.
+- **QEMU**: The emulator used to run the OS. Other can also run the kernel but will not automaticly work with my bash file.
+- **Open Virtual Machine Firmware**: An extra program for QEMU to run properly the kernel.
+- **Bash**: A Unix-like shell to execute the startup script. You can manually build it with cargo run if not.
 
 ### Setup Instructions
 
@@ -57,8 +57,7 @@ Before running GlowOS, ensure you have the following installed on your system:
 5. **Run the OS in a USB:**
    Cargo run will automaticly execute the provided bash script to compile the kernel and deploy it to the USB:
    ```bash
-   chmod +x deploy_usb.sh
-   sudo ./deploy_usb.sh
+   make usb
    ```
    > Remeber to disactivate secure boot in the BIOS
 
@@ -130,7 +129,7 @@ Before running GlowOS, ensure you have the following installed on your system:
 
 ## AI
 
-During the development of this project AI has been use only to help gather information about kernels, make simple bash scripts, or add simple functions that have been **verifide by me**. Every other single line of code in this repository has been **writen by me** or has been copy and pasted from some amazing blogs that i have found online.
+During the development of this project AI has been use only to help gather information about kernels, make simple bash scripts, or add simple functions that have been **verifide by me**. Every other single line of code in this repository has been **writen by me** or has been copy and pasted from some amazing blogs that I have found online.
 
 ---
 
