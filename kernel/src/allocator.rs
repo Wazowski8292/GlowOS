@@ -24,7 +24,7 @@ unsafe impl GlobalAlloc for Dummy {
     }
 }
 
-pub const HEAP_START: usize = 0x_4444_4444_0000;
+pub const HEAP_START: usize = 0xFFFF_8000_0000_0000;
 pub const HEAP_SIZE: usize = 1 * 1024 * 1024; // 1 MiB
 
 use x86_64::{
@@ -74,7 +74,7 @@ pub fn alloc_init(boot_info: &'static BootInfo){
     init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
     let total_frames = 32768; 
-    let bitmap_size_bytes = total_frames / 8; // 32 KiB
+    let bitmap_size_bytes = total_frames / 8;
 
     let bitmap_frame = frame_allocator.allocate_frame().expect("Failed to allocate frame for bitmap tracking");
 
@@ -93,7 +93,8 @@ pub fn alloc_init(boot_info: &'static BootInfo){
         MEMORY_MANAGER = Some(MemoryKernelManager {
             mapper,
             dma_allocator,
-            next_free_dma_vaddr: VirtAddr::new(0xFFFF_A000_0000_0000),
+            next_free_dma_vaddr:  VirtAddr::new(0xFFFF_A000_0000_0000),
+            next_free_mmio_vaddr: VirtAddr::new(0xFFFF_B000_0000_0000),
         });
     }
 }

@@ -10,6 +10,8 @@ pub struct MemoryKernelManager {
     pub mapper: OffsetPageTable<'static>,
     pub dma_allocator: BitmapFrameAllocator,
     pub next_free_dma_vaddr: VirtAddr,
+    /// Bump pointer for MMIO virtual address allocations (0xFFFF_B000_0000_0000 range)
+    pub next_free_mmio_vaddr: VirtAddr,
 }
 
 pub static mut MEMORY_MANAGER: Option<MemoryKernelManager> = None;
@@ -58,6 +60,58 @@ pub fn map_xhci_contiguous_region(
             Err(e) => panic!("Failed to map contiguous xHCI region at page {:?}: {:?}", current_page, e),
         }
     }
+}
+
+/// Map a physical MMIO region into the kernel's dedicated MMIO virtual address range
+/// (`0xFFFF_B000_0000_0000`).  Returns the virtual address corresponding to `phys_base`.
+///
+/// Pages are mapped with `PRESENT | WRITABLE | NO_CACHE | WRITE_THROUGH` so that
+/// hardware register reads/writes bypass the CPU cache entirely.
+pub fn map_mmio(phys_base: u64, size: usize) -> VirtAddr {
+    assert!(size > 0, "map_mmio: size must be > 0");
+
+    // Align the physical base down to a page boundary and track the offset so
+    // we can return the exact virtual address the caller asked for.
+    let page_offset  = phys_base & 0xFFF;
+    let phys_aligned = phys_base - page_offset;
+    let total_bytes  = (size as u64 + page_offset + 0xFFF) & !0xFFF;
+    let page_count   = (total_bytes / 4096) as usize;
+
+    #[allow(static_mut_refs)]
+    let manager = unsafe {
+        MEMORY_MANAGER.as_mut().expect("map_mmio: MemoryKernelManager not initialised")
+    };
+
+    let base_vaddr = manager.next_free_mmio_vaddr;
+    let start_page = Page::<Size4KiB>::containing_address(base_vaddr);
+
+    let flags = PageTableFlags::PRESENT
+              | PageTableFlags::WRITABLE
+              | PageTableFlags::NO_CACHE
+              | PageTableFlags::WRITE_THROUGH;
+
+    for i in 0..page_count as u64 {
+        let current_page  = start_page + i;
+        let current_frame = PhysFrame::containing_address(
+            x86_64::PhysAddr::new(phys_aligned + i * 4096)
+        );
+
+        let result = unsafe {
+            manager.mapper.map_to(current_page, current_frame, flags, &mut manager.dma_allocator)
+        };
+
+        match result {
+            Ok(flusher) => flusher.flush(),
+            Err(e) => panic!("map_mmio: failed to map page {:?}: {:?}", current_page, e),
+        }
+    }
+
+    // Advance the MMIO bump pointer past the mapped region.
+    manager.next_free_mmio_vaddr = base_vaddr + (page_count as u64 * 4096);
+
+    // Return the virtual address that corresponds to the original (possibly
+    // non-page-aligned) physical base address.
+    base_vaddr + page_offset
 }
 
 pub fn create_example_mapping(

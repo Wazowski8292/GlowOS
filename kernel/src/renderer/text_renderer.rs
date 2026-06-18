@@ -147,9 +147,11 @@ impl FontRenderer {
             ascii_character: c,
             color: self.font_color,
         };
-        self.set(msg);
-        self.draw_cursor(self.x_pos, self.y_pos);
-        self.draw_char(self.x_pos, self.y_pos, msg, false);
+        let old_x = self.x_pos;
+        let old_y = self.y_pos;
+        self.set(msg); // increments x_pos
+        self.draw_char(old_x, old_y, msg, false); // draw glyph at where it was written
+        self.draw_cursor(self.x_pos, self.y_pos); // draw cursor at new position
     }
 
     pub fn print_string(&mut self, msg: &str) {
@@ -282,28 +284,26 @@ impl FontRenderer {
     
     fn draw_cursor(&mut self, x_pos: usize, y_pos: usize) {
         self.clear_cursor();
-        let cursor = Letter {
-            ascii_character: self.get(x_pos, y_pos).ascii_character, //■
-            color: self.font_color,
-        };
         self.cursor_x_pos = x_pos;
         self.cursor_y_pos = y_pos;
 
+        if !self.draw_cursor {
+            return;
+        }
+        let cursor = Letter {
+            ascii_character: self.get(x_pos, y_pos).ascii_character,
+            color: self.font_color,
+        };
+        self.draw_char(self.cursor_x_pos, self.cursor_y_pos, cursor, true);
+    }
 
+    /// Called from the timer IRQ — advances the blink state then redraws.
+    pub fn blink_cursor(&mut self) {
         self.draw_cursor_timer += 1;
         if self.draw_cursor_timer >= self.max_draw_cursor_timer {
             self.draw_cursor = !self.draw_cursor;
             self.draw_cursor_timer = 0;
         }
-
-        if !self.draw_cursor{ 
-            return;
-        }
-        self.draw_char(self.cursor_x_pos, self.cursor_y_pos, cursor, true);
-
-    }
-
-    pub fn blink_cursor(&mut self) {
         self.draw_cursor(self.cursor_x_pos, self.cursor_y_pos);
     }
 

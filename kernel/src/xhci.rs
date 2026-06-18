@@ -239,14 +239,16 @@ impl XhciDriver {
         }
     }
 }
-pub fn init(xhci_base_vaddr: u64){
-    if let Some(xhci_phys_addr) = pci::init(xhci_base_vaddr) {
-        let xhci_driver = unsafe { XhciDriver::new((xhci_base_vaddr + xhci_phys_addr) as u64) };
+pub fn init(_phys_mem_offset: u64) {
+    if let Some(xhci_virt_addr) = pci::init() {
+        println!("xHCI virt addr: {:#x} (mmio-mapped)", xhci_virt_addr.as_u64());
+        
+        let xhci_driver = unsafe { XhciDriver::new(xhci_virt_addr.as_u64()) };
         xhci_driver.log_capability_registers();
         xhci_driver.log_operational_registers();
 
-        unsafe { XHCI_DRIVER =  Some(xhci_driver)};
+        unsafe { XHCI_DRIVER = Some(xhci_driver) };
     } else {
-        println!("Error: No hardware xHCI controller detected on the PCI bus.");
+        println!("Error: No xHCI controller found on PCI bus.");
     }
 }

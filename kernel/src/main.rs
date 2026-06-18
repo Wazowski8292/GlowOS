@@ -6,8 +6,6 @@
 
 use core::panic::PanicInfo;
 use kernel::println;
-use kernel::serial_println;
-//use kernel::write_byte;
 
 
 use bootloader_api::{BootInfo, config::Mapping, BootloaderConfig};
@@ -37,7 +35,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    serial_println!("{}", info);
+    println!("{}", info);
     kernel::hlt_loop();
 }
 
