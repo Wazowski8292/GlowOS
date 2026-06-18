@@ -54,7 +54,7 @@ impl FontRenderer {
             cursor_x_pos: 0,
             cursor_y_pos: 0,
             draw_cursor_timer: 0,
-            max_draw_cursor_timer: 10,
+            max_draw_cursor_timer: 50,
             draw_cursor: true,
             background_color: bg_color,
             font_color: text_color,

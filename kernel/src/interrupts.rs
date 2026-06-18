@@ -25,6 +25,18 @@ lazy_static! {
     };
 }
 
+fn init_pit(hz: u32) {
+    use x86_64::instructions::port::Port;
+    let divisor = (1_193_182u32 / hz) as u16;
+    unsafe {
+        let mut cmd: Port<u8> = Port::new(0x43);
+        cmd.write(0x36);
+        let mut data: Port<u8> = Port::new(0x40);
+        data.write((divisor & 0xFF) as u8);
+        data.write((divisor >> 8) as u8);
+    }
+}
+
 pub fn init_idt() {
     IDT.load();
 
@@ -33,6 +45,8 @@ pub fn init_idt() {
         pics.initialize();
         pics.write_masks(0xFC, 0xFF);
     };
+
+    init_pit(100); // 100 Hz timer → tick every 10 ms
 
     x86_64::instructions::interrupts::enable();
 }

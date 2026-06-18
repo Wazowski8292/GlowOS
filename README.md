@@ -95,10 +95,9 @@ Before running GlowOS, ensure you have the following installed on your system:
 
 ## Todo
 
-- [ ] Make PCI adres not be constant because it differs from motherboard to motherboard, but it still works in qemu
 - [ ] Reset xHCI controler
 - [ ] Add a way to insert letters in the middle of words without erasing them
-- [ ] In fisical hardware the cursor is represented for some reason as a letter
+- [x] In fisical hardware the cursor is represented for some reason as a letter
 - [ ] In fisical hardware the cursor is not blinking
 
 ---

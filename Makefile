@@ -20,3 +20,6 @@ test:
 	cd kernel && cargo test --no-run --message-format=json --test-threads=1 2>&1 \
 		| python3 -c "import sys,json; [print(o['executable']) for l in sys.stdin if (o:=json.loads(l)).get('executable') and o.get('reason')=='compiler-artifact']" \
 		| xargs -I{} cargo run --manifest-path ../image-builder/Cargo.toml -- {}
+
+usb: 
+	./image-builder/deploy_usb.sh
