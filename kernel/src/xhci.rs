@@ -62,6 +62,9 @@ pub struct XhciDriver {
     port_indicators: bool,
     light_reset_capability: bool,
     extended_capabilities_offset: u32,
+
+    m_dcbaa: *mut u64,
+    m_dcbaa_virt_addr: *mut u64,
 }
 
 pub static mut XHCI_DRIVER: Option<XhciDriver> = None;
@@ -110,6 +113,9 @@ impl XhciDriver {
             port_indicators,
             light_reset_capability,
             extended_capabilities_offset,
+            m_dcbaa: core::ptr::null_mut(),
+            m_dcbaa_virt_addr: core::ptr::null_mut(),
+
         }
     }
 
@@ -245,7 +251,7 @@ impl XhciDriver {
         }
     }
 
-    fn reset_host_controller(&mut self) {
+    fn reset_host_controller(&self) {
         unsafe {
             let op = self.op_regs as *mut XhciOperationalRegisters;
 
@@ -275,6 +281,47 @@ impl XhciDriver {
             wait(50);
         }
     }
+
+    fn configure_operational_registers(&mut self) {
+        unsafe {
+            let op = self.op_regs as *mut XhciOperationalRegisters;
+            (*op).dnctrl.write(0xffff);
+            (*op).config.write(self.max_device_slots as u32);
+        }
+
+        self.set_up_dcbaa();
+    }
+
+    fn set_up_dcbaa(&mut self) {
+        unsafe {
+
+            let op = self.op_regs as *mut XhciOperationalRegisters;
+            
+            let slot_count = (self.max_device_slots as usize) + 1;
+            let dcbaa_size = core::mem::size_of::<u64>() * slot_count;
+
+            let virt_array_size = core::mem::size_of::<u64>() * slot_count;
+            self.m_dcbaa = self.alloc_memory(dcbaa_size, 64) as *mut u64;
+            self.m_dcbaa_virt_addr = self.alloc_memory(virt_array_size, 8) as *mut u64;
+
+            if self.max_scratchpad_buffers > 0 {
+                let scratchpad_array = self.alloc_memory(core::mem::size_of::<u64>() * self.max_scratchpad_buffers as usize, 64) as *mut u64;
+                
+                for i in 0..self.max_scratchpad_buffers as usize {
+                    let scratchpad = self.alloc_memory(4096, 4096) as *mut u64; // Maybe 64
+                    scratchpad_array.add(i).write(self.get_physical_addr(scratchpad as *const u8));
+                }
+
+                let scratchpad_array_phys = self.get_physical_addr(scratchpad_array as *const u8);
+                self.m_dcbaa.write(scratchpad_array_phys);
+
+                self.m_dcbaa_virt_addr.write(scratchpad_array as u64);
+            }
+
+            (*op).dcbaap.write(self.get_physical_addr(self.m_dcbaa as *const u8))
+    
+        }    
+    }
 }
 
 pub fn init(_phys_mem_offset: u64) {
@@ -282,9 +329,12 @@ pub fn init(_phys_mem_offset: u64) {
         println!("xHCI virt addr: {:#x} (mmio-mapped)", xhci_virt_addr.as_u64());
         
         let mut xhci_driver = unsafe { XhciDriver::new(xhci_virt_addr.as_u64()) };
+
         xhci_driver.log_capability_registers();
-        xhci_driver.log_operational_registers();
         xhci_driver.reset_host_controller();
+        xhci_driver.configure_operational_registers();
+        xhci_driver.log_operational_registers();
+
 
         unsafe { XHCI_DRIVER = Some(xhci_driver) };
     } else {

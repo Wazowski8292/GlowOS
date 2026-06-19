@@ -165,14 +165,17 @@ impl FontRenderer {
     }
 
     pub fn backspace(&mut self) {
-        self.buffer[self.x_pos + self.y_pos * self.max_chars_x] = DEFAULT_LETTER;
-        self.draw_char(self.x_pos, self.y_pos, DEFAULT_LETTER, false);
 
         self.x_pos -= if self.x_pos == 0 {
             0
         } else {
            1
         };
+
+        self.buffer[self.x_pos + self.y_pos * self.max_chars_x] = DEFAULT_LETTER;
+        self.draw_char(self.x_pos, self.y_pos, DEFAULT_LETTER, false);
+
+
 
         self.draw_cursor(self.x_pos, self.y_pos);
     }
