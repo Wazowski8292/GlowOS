@@ -103,6 +103,7 @@ Before running GlowOS, ensure you have the following installed on your system:
 - [ ] Send commands to xHCI controler
 - [ ] Exted capability registers xHCI controler
 - [ ] xHCI port reset
+- [ ] Add FAT32 encoding 
 - [ ] Add a way to insert letters in the middle of words without erasing them
 - [ ] In fisical hardware the cursor is not blinking
 
