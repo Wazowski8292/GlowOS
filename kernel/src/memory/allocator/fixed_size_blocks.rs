@@ -1,4 +1,4 @@
-use crate::allocator::{linked_list::LinkedListAllocator, Locked};
+use crate::memory::allocator::{linked_list::LinkedListAllocator, Locked};
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::mem;
 use core::ptr;

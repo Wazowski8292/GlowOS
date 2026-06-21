@@ -1,10 +1,11 @@
-use crate::renderer::{text_font::{SYS_FONT, char_to_font_index}, Color, RENDERER};
+use crate::renderer::renderer::{Color, RENDERER};
+use super::text_font::{SYS_FONT, char_to_font_index};
 use alloc::{vec ,vec::Vec, string::String};
 
 const CHAR_SIZE: usize = 8;
 const DEFAULT_LETTER: Letter = Letter {
     ascii_character : ' ',
-    color: Color { r: 0, g: 0, b: 0},
+    color: Color::new(0, 0, 0),
 };
 
 #[derive(Clone, Copy)]

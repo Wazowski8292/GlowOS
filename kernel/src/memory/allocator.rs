@@ -1,6 +1,6 @@
 use fixed_size_blocks::FixedSizeBlockAllocator;
 use bootloader_api::BootInfo;
-use crate::memory::{MEMORY_MANAGER, MemoryKernelManager};
+use crate::memory::memory::{MEMORY_MANAGER, MemoryKernelManager};
 
 #[global_allocator]
 static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
@@ -64,11 +64,11 @@ pub fn init_heap(
 }
 
 pub fn alloc_init(boot_info: &'static BootInfo){
-    use crate::memory::{self, BootInfoFrameAllocator, BitmapFrameAllocator};
+    use crate::memory::memory::{BootInfoFrameAllocator, BitmapFrameAllocator};
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option()
         .expect("Physical memory mapping was not enabled in BOOTLOADER_CONFIG"));
-    let mut mapper = memory::init(phys_mem_offset);
+    let mut mapper = super::memory::init(phys_mem_offset);
     let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_regions) };
 
     init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");

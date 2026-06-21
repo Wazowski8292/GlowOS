@@ -2,10 +2,10 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
 use crate::print;
 use crate::println;
-use crate::renderer::get_renderer;
+use crate::renderer::renderer::get_renderer;
 use lazy_static::lazy_static;
 
-use crate::gdt;
+use super::gdt;
 use crate::hlt_loop;
 use x86_64::structures::idt::PageFaultErrorCode;
 
@@ -123,7 +123,7 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFr
     }
 }
 
-use crate::terminal;
+use crate::user::terminal;
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
     use pc_keyboard::{DecodedKey, HandleControl, Keyboard, ScancodeSet1, layouts, KeyCode};

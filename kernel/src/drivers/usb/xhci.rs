@@ -1,10 +1,10 @@
 use crate::memory;
-use crate::pci;
-use crate::interrupts::wait;
+use super::pci;
+use crate::drivers::interrupts::wait;
 use crate::println;
 use x86_64::structures::paging::{Page, PhysFrame, Mapper, Size4KiB, Translate};
 use x86_64::VirtAddr;
-use crate::memory::MEMORY_MANAGER;
+use crate::memory::memory::MEMORY_MANAGER;
 use volatile::Volatile;
 
 const XHCI_USBCMD_START_STOP: u32 = 0;
@@ -141,7 +141,7 @@ impl XhciDriver {
 
         // Set up the page tables
         let target_page = Page::containing_address(base_vaddr);
-        memory::map_xhci_contiguous_region(
+        self::memory::memory::map_xhci_contiguous_region(
             target_page,
             target_frame,
             page_count,

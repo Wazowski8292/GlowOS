@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ($crate::renderer::_print(format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::renderer::renderer::_print(format_args!($($arg)*)));
 }
 
 #[macro_export]
@@ -27,11 +27,10 @@ pub fn get_renderer() -> &'static mut Renderer {
 }
 
 use bootloader_api::info::{FrameBufferInfo, PixelFormat, FrameBuffer};
-use text_renderer::FontRenderer;
+use super::font_renderer::text_renderer::FontRenderer;
 use core::fmt;
 
-pub mod text_renderer;
-pub mod text_font;
+
 
 pub static mut RENDERER: Option<Renderer> = None; 
 
@@ -50,11 +49,11 @@ pub struct Color {
 }
 
 impl Color {
-    pub fn new(r: u8, g: u8, b: u8) -> Self {
+    pub const fn new(r: u8, g: u8, b: u8) -> Self {
         Color { r, g, b }
     }
     
-    fn from_str(value: &str) -> Result<Self, ()> {
+    pub fn from_str(value: &str) -> Result<Self, ()> {
         match value {
             "black"     => Ok(Color::new(0,   0,   0  )),
             "blue"      => Ok(Color::new(0,   0,   170)),

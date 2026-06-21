@@ -9,6 +9,7 @@ build:
 	cd image-builder && cargo build
 
 check:
+	clear
 	cd kernel && cargo check
 	cd image-builder && cargo check
 

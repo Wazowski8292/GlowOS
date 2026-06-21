@@ -1,4 +1,4 @@
-use crate::{memory, println};
+use crate::println;
 use x86_64::{VirtAddr, instructions::port::Port};
 use core::ptr::{read_volatile, write_volatile};
 
@@ -127,7 +127,7 @@ fn pci_discover() -> Option<VirtAddr> {
                             println!("xHCI BAR0 physical: {:#x}", paddr);
                             // Map the MMIO region into virtual address space FIRST,
                             // so bios_handoff never touches unmapped memory.
-                            let vaddr = memory::map_mmio(paddr, 0x10000);
+                            let vaddr = crate::memory::memory::map_mmio(paddr, 0x10000);
                             println!("xHCI BAR0 mapped:   {:#x}", vaddr.as_u64());
                             bios_handoff(vaddr.as_u64());
                             return Some(vaddr);

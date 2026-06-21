@@ -1,7 +1,7 @@
 use crate::println;
 use crate::print;
-use crate::renderer::get_renderer;
-use crate::xhci::XHCI_DRIVER;
+use crate::renderer::renderer::get_renderer;
+use crate::drivers::usb::xhci::XHCI_DRIVER;
 
 use alloc::{vec::Vec, string::String};
 
