@@ -2,7 +2,7 @@
 pub struct Control(pub u32);
 
 impl Control {
-    pub const fn cycle_bit(&self) -> bool { (self.0 & 1) != 0 }
+    pub const fn cycle_bit(&self) -> u8 { (self.0 & 1) as u8}
     pub const fn eval_next_trb(&self) -> bool { ((self.0 >> 1) & 1) != 0 }
     pub const fn interrupt_on_short_pkt(&self) -> bool { ((self.0 >> 2) & 1) != 0 }
     pub const fn no_snoop(&self) -> bool { ((self.0 >> 3) & 1) != 0 }

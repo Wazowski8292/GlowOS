@@ -1,4 +1,4 @@
-use super::xhci_helper::xhci_rings::XhciCommandRing;
+use super::xhci_helper::xhci_rings::{ XhciCommandRing, XhciEventRing };
 use super::xhci_helper::xhci_registers::{XhciRuntimeRegister, XhciInterruptRegisters};
 use super::pci;
 use crate::drivers::interrupts::wait;
@@ -69,6 +69,7 @@ pub struct XhciDriver {
     m_dcbaa_virt_addr: *mut u64,
 
     command_ring: Option<XhciCommandRing>,
+    event_ring: Option<XhciEventRing>,
     runtime_register: Volatile< *mut XhciRuntimeRegister>,
 }
 
@@ -124,6 +125,7 @@ impl XhciDriver {
             m_dcbaa: core::ptr::null_mut(),
             m_dcbaa_virt_addr: core::ptr::null_mut(),
             command_ring: None,
+            event_ring: None,
             runtime_register: runtime_reg,
         }
     }
@@ -303,7 +305,7 @@ impl XhciDriver {
 
         unsafe {
             let op = self.op_regs as *mut XhciOperationalRegisters;
-            (*op).crcr.write(self.command_ring.as_mut().unwrap().physical_base as u64 | self.command_ring.as_mut().unwrap().ring_cycle_status as u64);
+            (*op).crcr.write(self.command_ring.as_mut().unwrap().physical_base as u64 | self.command_ring.as_mut().unwrap().ring_cycle_state as u64);
         }
     }
 
@@ -344,6 +346,14 @@ impl XhciDriver {
         };
 
         unsafe { (*interrupt_reg).interrupt_manager |= 1 << 1; }
+
+        self.event_ring = Some(XhciEventRing::new(256, interrupt_reg, self));
+
+        unsafe {
+            println!("ERSTSZ: {}\nERSTBA: {}", 
+                (*interrupt_reg).event_ring_segmentation_size, 
+                (*interrupt_reg).event_ring_segmentation_base_addres)
+            };
 
         self.acknowledge_irq(0);
     }
