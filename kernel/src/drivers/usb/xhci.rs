@@ -1,10 +1,11 @@
-use crate::memory;
+use super::xhci_helper::xhci_rings::XhciCommandRing;
 use super::pci;
 use crate::drivers::interrupts::wait;
 use crate::println;
 use x86_64::structures::paging::{Page, PhysFrame, Mapper, Size4KiB, Translate};
 use x86_64::VirtAddr;
 use crate::memory::memory::MEMORY_MANAGER;
+use crate::memory::memory;
 use volatile::Volatile;
 
 const XHCI_USBCMD_START_STOP: u32 = 0;
@@ -65,6 +66,8 @@ pub struct XhciDriver {
 
     m_dcbaa: *mut u64,
     m_dcbaa_virt_addr: *mut u64,
+
+    command_ring: Option<XhciCommandRing>,
 }
 
 pub static mut XHCI_DRIVER: Option<XhciDriver> = None;
@@ -115,7 +118,7 @@ impl XhciDriver {
             extended_capabilities_offset,
             m_dcbaa: core::ptr::null_mut(),
             m_dcbaa_virt_addr: core::ptr::null_mut(),
-
+            command_ring: None,
         }
     }
 
@@ -141,7 +144,7 @@ impl XhciDriver {
 
         // Set up the page tables
         let target_page = Page::containing_address(base_vaddr);
-        self::memory::memory::map_xhci_contiguous_region(
+        memory::map_xhci_contiguous_region(
             target_page,
             target_frame,
             page_count,
@@ -290,6 +293,12 @@ impl XhciDriver {
         }
 
         self.set_up_dcbaa();
+        self.command_ring = Some(XhciCommandRing::new(256, &self));
+
+        unsafe {
+            let op = self.op_regs as *mut XhciOperationalRegisters;
+            (*op).crcr.write(self.command_ring.as_mut().unwrap().physical_base as u64 | self.command_ring.as_mut().unwrap().ring_cycle_status as u64);
+        }
     }
 
     fn set_up_dcbaa(&mut self) {
