@@ -97,7 +97,7 @@ Before running GlowOS, ensure you have the following installed on your system:
 - [x] Reset xHCI controler
 - [x] Add DCBAA to xHCI controler
 - [x] Add Command Ring to xHCI controler
-- [ ] Add Runtime Registers to xHCI controler
+- [x] Add Runtime Registers to xHCI controler
 - [ ] Add Event Ring to xHCI controler
 - [ ] Start xHCI controler
 - [ ] Send commands to xHCI controler

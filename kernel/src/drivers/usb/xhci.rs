@@ -1,4 +1,5 @@
 use super::xhci_helper::xhci_rings::XhciCommandRing;
+use super::xhci_helper::xhci_registers::{XhciRuntimeRegister, XhciInterruptRegisters};
 use super::pci;
 use crate::drivers::interrupts::wait;
 use crate::println;
@@ -68,6 +69,7 @@ pub struct XhciDriver {
     m_dcbaa_virt_addr: *mut u64,
 
     command_ring: Option<XhciCommandRing>,
+    runtime_register: Volatile< *mut XhciRuntimeRegister>,
 }
 
 pub static mut XHCI_DRIVER: Option<XhciDriver> = None;
@@ -99,6 +101,9 @@ impl XhciDriver {
 
         let op_regs = (xhci_mmio_base + caplength as u64) as *const XhciOperationalRegisters;
 
+        let rtssoff = unsafe{ (*cap_regs).rtssoff.read()} as u64;
+        let runtime_reg = Volatile::new((xhci_mmio_base + rtssoff) as *mut XhciRuntimeRegister);
+
         Self {
             cap_regs,
             op_regs,
@@ -119,6 +124,7 @@ impl XhciDriver {
             m_dcbaa: core::ptr::null_mut(),
             m_dcbaa_virt_addr: core::ptr::null_mut(),
             command_ring: None,
+            runtime_register: runtime_reg,
         }
     }
 
@@ -331,6 +337,29 @@ impl XhciDriver {
     
         }    
     }
+
+    fn configure_runtime_registers(&mut self) {
+        let interrupt_reg: *mut XhciInterruptRegisters = unsafe {
+            &mut (*self.runtime_register.read()).interrupt_registers[0]
+        };
+
+        unsafe { (*interrupt_reg).interrupt_manager |= 1 << 1; }
+
+        self.acknowledge_irq(0);
+    }
+
+    fn acknowledge_irq(&mut self, interrupter: u8) {
+        unsafe {
+            let op = self.op_regs as *mut XhciOperationalRegisters;
+            (*op).usbsts.write(1 << 3);
+        }
+
+        let interrupt_reg: *mut XhciInterruptRegisters = unsafe {
+            &mut (*self.runtime_register.read()).interrupt_registers[interrupter as usize]
+        };
+
+        unsafe { (*interrupt_reg).interrupt_manager |= 1; }
+    }
 }
 
 pub fn init(_phys_mem_offset: u64) {
@@ -343,7 +372,7 @@ pub fn init(_phys_mem_offset: u64) {
         xhci_driver.reset_host_controller();
         xhci_driver.configure_operational_registers();
         xhci_driver.log_operational_registers();
-
+        xhci_driver.configure_runtime_registers();
 
         unsafe { XHCI_DRIVER = Some(xhci_driver) };
     } else {
