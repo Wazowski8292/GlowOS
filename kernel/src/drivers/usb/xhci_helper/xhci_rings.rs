@@ -100,8 +100,8 @@ impl XhciEventRing {
  
         unsafe {
             (*interrupter).event_ring_segmentation_size = 1;
-            (*interrupter).event_ring_dequeue_pointer = erdp;
             (*interrupter).event_ring_segmentation_base_addres = segment_table_addr;
+            (*interrupter).event_ring_dequeue_pointer = erdp;
         }
 
 

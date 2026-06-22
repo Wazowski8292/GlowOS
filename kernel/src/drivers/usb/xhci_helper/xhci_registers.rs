@@ -11,7 +11,7 @@ impl EventRingDequeuePointer {
     }
 
     pub fn get_event_ring_dequeue_pointer(&self) -> u64 {
-        self.0 >> 4
+        self.0 & !0xF
     }
 
     pub fn set_dequeue_segment_index(&mut self, bit: u8) {
@@ -22,11 +22,12 @@ impl EventRingDequeuePointer {
         self.0 = self.0 | ((bit as u64) << 3);
     }
 
-    pub fn set_event_ring_dequeue_pointer(&mut self, bit: u64) {
-        self.0 = self.0 | (bit << 4);
+    pub fn set_event_ring_dequeue_pointer(&mut self, ptr: u64) {
+        self.0 = (self.0 & 0xF) | (ptr & !0xF);
     }
 }
 
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct XhciInterruptRegisters {
     pub interrupt_manager: u32,
@@ -37,6 +38,7 @@ pub struct XhciInterruptRegisters {
     pub event_ring_dequeue_pointer: EventRingDequeuePointer,
 }
 
+#[repr(C)]
 pub struct XhciRuntimeRegister {
     pub microframe_index: u32,
     pub reserved: [u32; 7],

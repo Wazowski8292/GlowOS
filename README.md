@@ -75,8 +75,9 @@ Before running GlowOS, ensure you have the following installed on your system:
 | `$set_color` | Changes the color of the text and/or background. |
 | `$update_color` | Updates all text on screen to use the currently set color. |
 | `$xhci_log` | Shows xHCI's logs. |
-| `$xhci_log_cap_register` | Shows xHCI's log capability registers. |
-| `$xhci_log_op_register` | Shows xHCI's log operational registers. |
+| `$xhci_log_cap_register` | Shows xHCI's capability registers logs. |
+| `$xhci_log_op_register` | Shows xHCI's operational registers logs. |
+| `$xhci_log_usbsts` | Shows xHCI's usbsts logs. |
 | `$holy_c` | Shows holy C logo. |
 
 ---
@@ -99,7 +100,7 @@ Before running GlowOS, ensure you have the following installed on your system:
 - [x] Add Command Ring to xHCI controler
 - [x] Add Runtime Registers to xHCI controler
 - [x] Add Event Ring to xHCI controler
-- [ ] Start xHCI controler
+- [x] Start xHCI controler
 - [ ] Send commands to xHCI controler
 - [ ] Exted capability registers xHCI controler
 - [ ] xHCI port reset

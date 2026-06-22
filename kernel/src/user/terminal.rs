@@ -30,37 +30,42 @@ static COMMANDS: &[Command] = &[
     Command {
         name: "clear",
         function: clear,
-        description: "It clears the screen"
+        description: "Clears the screen"
     },
     Command {
         name: "set_color",
         function: change_color,
-        description: "It changes the color of the text and or background"
+        description: "Changes the color of the text and or background"
     },
     Command {
         name: "update_color",
         function: update_color,
-        description: "it changes all of the text colors to be the one you are currently using"
+        description: "Changes all of the text colors to be the one you are currently using"
     },
     Command {
         name: "xhci_log",
         function: xhci_logs,
-        description: "It shows xHCI's logs"
+        description: "Shows all xHCI's logs"
     },
     Command {
         name: "xhci_log_cap_register",
         function: xhci_cap_logs,
-        description: "It shows xHCI's log capability registers"
+        description: "Shows xHCI's capability registers logs"
     },
     Command {
         name: "xhci_log_op_register",
         function: xhci_op_logs,
-        description: "It shows xHCI's log operational registers"
+        description: "Shows xHCI's operational registers logs"
+    },
+    Command {
+        name: "xhci_log_usbsts",
+        function: xhci_sts_logs,
+        description: "Shows xHCI's usbsts logs"
     },
     Command {
         name: "holy_c",
         function: holy_c,
-        description: "It shows xHCI's log operational registers"
+        description: "Shows xHCI's log operational registers"
     },
 ];
 
@@ -138,6 +143,15 @@ fn xhci_op_logs(_cmd: Vec<String>) {
     xhci_driver.log_operational_registers();
 }
 
+fn xhci_sts_logs(_cmd: Vec<String>) {
+    #[allow(static_mut_refs)]
+    let xhci_driver = unsafe { 
+        XHCI_DRIVER.as_ref().expect("xHCI not initialized!") 
+    };
+
+    xhci_driver.log_usbsts();
+}
+
 fn xhci_logs(_cmd: Vec<String>) {
     #[allow(static_mut_refs)]
     let xhci_driver = unsafe { 
@@ -146,6 +160,7 @@ fn xhci_logs(_cmd: Vec<String>) {
 
     xhci_driver.log_capability_registers();
     xhci_driver.log_operational_registers();
+    xhci_driver.log_usbsts();
 }
 
 fn change_color(cmd: Vec<String>){

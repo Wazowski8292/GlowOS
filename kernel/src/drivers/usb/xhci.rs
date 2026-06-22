@@ -12,6 +12,16 @@ use volatile::Volatile;
 const XHCI_USBCMD_START_STOP: u32 = 0;
 const XHCI_USBCMD_RESET: u32 = 1;
 const XHCI_USBSTS_NOT_READY: u32 = 11;
+const XHCI_USBCMD_INTERRUPTER_ENABLE: u32 = 2;
+const XHCI_USBSTS_HCH: u32  = 1 << 0;  // Host Controller Halted
+const XHCI_USBSTS_HSE: u32  = 1 << 2;  // Host System Error
+const XHCI_USBSTS_EINT: u32 = 1 << 3;  // Event Interrupt
+const XHCI_USBSTS_PCD: u32  = 1 << 4;  // Port Change Detect
+const XHCI_USBSTS_SSS: u32  = 1 << 8;  // Save State Status
+const XHCI_USBSTS_RSS: u32  = 1 << 9;  // Restore State Status
+const XHCI_USBSTS_SRE: u32  = 1 << 10; // Save/Restore Error
+const XHCI_USBSTS_CNR: u32  = 1 << 11; // Controller Not Ready
+const XHCI_USBSTS_HCE: u32  = 1 << 12; // Host Controller Error
 
 #[repr(C)]
 struct AllocationHeader {
@@ -262,6 +272,28 @@ impl XhciDriver {
         }
     }
 
+    pub fn log_usbsts(&self) {
+        let status = unsafe { (*self.op_regs).usbsts.read() };
+        println!("===== USBSTS =====");
+
+        let mut has_error = false;
+
+        if status & XHCI_USBSTS_HCH  != 0 { println!("    [ERR] Host Controller Halted");   has_error = true; }
+        if status & XHCI_USBSTS_HSE  != 0 { println!("    [ERR] Host System Error");         has_error = true; }
+        if status & XHCI_USBSTS_EINT != 0 { println!("    [INFO] Event Interrupt"); }
+        if status & XHCI_USBSTS_PCD  != 0 { println!("    [INFO] Port Change Detect"); }
+        if status & XHCI_USBSTS_SSS  != 0 { println!("    [INFO] Save State Status"); }
+        if status & XHCI_USBSTS_RSS  != 0 { println!("    [INFO] Restore State Status"); }
+        if status & XHCI_USBSTS_SRE  != 0 { println!("    [ERR] Save/Restore Error");        has_error = true; }
+        if status & XHCI_USBSTS_CNR  != 0 { println!("    [ERR] Controller Not Ready");      has_error = true; }
+        if status & XHCI_USBSTS_HCE  != 0 { println!("    [ERR] Host Controller Error");     has_error = true; }
+
+        if !has_error {
+            println!("    [OK] Controller status healthy");
+        }
+        println!();
+    }
+
     fn reset_host_controller(&self) {
         unsafe {
             let op = self.op_regs as *mut XhciOperationalRegisters;
@@ -349,12 +381,6 @@ impl XhciDriver {
 
         self.event_ring = Some(XhciEventRing::new(256, interrupt_reg, self));
 
-        unsafe {
-            println!("ERSTSZ: {}\nERSTBA: {}", 
-                (*interrupt_reg).event_ring_segmentation_size, 
-                (*interrupt_reg).event_ring_segmentation_base_addres)
-            };
-
         self.acknowledge_irq(0);
     }
 
@@ -370,6 +396,29 @@ impl XhciDriver {
 
         unsafe { (*interrupt_reg).interrupt_manager |= 1; }
     }
+
+    fn start_host_controller(&self) {
+        unsafe {
+            let op = self.op_regs as *mut XhciOperationalRegisters;
+
+            (*op).usbcmd.write((*op).usbcmd.read() | 1 << XHCI_USBCMD_START_STOP | 1 << XHCI_USBCMD_INTERRUPTER_ENABLE);
+
+            let mut timeout = 1000;
+            loop {
+                let sts = (*op).usbsts.read();
+                if (sts & (1 << XHCI_USBSTS_HCH)) == 0 { break; }
+                if timeout == 0 { println!("Controller did not start!"); return; }
+                wait(1);
+                timeout -= 1;
+            }
+
+            let sts = (*op).usbsts.read();
+            if (sts & (1 << XHCI_USBSTS_NOT_READY)) == 1 { 
+                println!("Controller isnt ready to start!");
+                return; 
+            }
+        }
+    }
 }
 
 pub fn init(_phys_mem_offset: u64) {
@@ -383,6 +432,10 @@ pub fn init(_phys_mem_offset: u64) {
         xhci_driver.configure_operational_registers();
         xhci_driver.log_operational_registers();
         xhci_driver.configure_runtime_registers();
+        
+        xhci_driver.start_host_controller();
+        xhci_driver.log_usbsts();
+        
 
         unsafe { XHCI_DRIVER = Some(xhci_driver) };
     } else {
