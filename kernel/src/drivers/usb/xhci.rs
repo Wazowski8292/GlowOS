@@ -1,5 +1,6 @@
 use super::xhci_helper::xhci_rings::{ XhciCommandRing, XhciEventRing };
-use super::xhci_helper::xhci_registers::{XhciRuntimeRegister, XhciInterruptRegisters};
+use super::xhci_helper::xhci_registers::{XhciRuntimeRegister, XhciInterruptRegisters, XhciDoorbellManager};
+use super::xhci_helper::xhci_trb::{XhciTransferRequestBlock, Control};
 use super::pci;
 use crate::drivers::interrupts::wait;
 use crate::println;
@@ -81,6 +82,7 @@ pub struct XhciDriver {
     command_ring: Option<XhciCommandRing>,
     event_ring: Option<XhciEventRing>,
     runtime_register: Volatile< *mut XhciRuntimeRegister>,
+    doorbell_manager: *mut XhciDoorbellManager,
 }
 
 pub static mut XHCI_DRIVER: Option<XhciDriver> = None;
@@ -115,6 +117,9 @@ impl XhciDriver {
         let rtssoff = unsafe{ (*cap_regs).rtssoff.read()} as u64;
         let runtime_reg = Volatile::new((xhci_mmio_base + rtssoff) as *mut XhciRuntimeRegister);
 
+        let dboff = unsafe{ (*cap_regs).dboff.read()} as u64;
+        let doorbell_man = (xhci_mmio_base + dboff) as *mut XhciDoorbellManager;
+
         Self {
             cap_regs,
             op_regs,
@@ -137,6 +142,7 @@ impl XhciDriver {
             command_ring: None,
             event_ring: None,
             runtime_register: runtime_reg,
+            doorbell_manager: doorbell_man,
         }
     }
 
@@ -419,6 +425,20 @@ impl XhciDriver {
             }
         }
     }
+
+    fn start_device(&mut self) {
+        self.start_host_controller();
+        self.log_usbsts();
+
+        let mut trb: XhciTransferRequestBlock = XhciTransferRequestBlock {
+            parameter: 0,
+            status: 0,
+            control: Control::new(),
+        };
+        trb.control.set_trb_type(9);
+        self.command_ring.unwrap().enqueue(&mut trb);
+        unsafe {(*self.doorbell_manager).ring_command_doorbell() };
+    }
 }
 
 pub fn init(_phys_mem_offset: u64) {
@@ -433,8 +453,7 @@ pub fn init(_phys_mem_offset: u64) {
         xhci_driver.log_operational_registers();
         xhci_driver.configure_runtime_registers();
         
-        xhci_driver.start_host_controller();
-        xhci_driver.log_usbsts();
+        xhci_driver.start_device();
         
 
         unsafe { XHCI_DRIVER = Some(xhci_driver) };

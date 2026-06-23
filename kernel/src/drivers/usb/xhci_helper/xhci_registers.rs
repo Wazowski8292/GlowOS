@@ -44,3 +44,50 @@ pub struct XhciRuntimeRegister {
     pub reserved: [u32; 7],
     pub interrupt_registers: [XhciInterruptRegisters; 1024],
 }
+
+#[repr(C)]
+struct XhciDoorbellRegister (u32);
+
+impl XhciDoorbellRegister {
+    fn get_doorbell_target(&self) -> u8 {
+        (self.0 & 0xff) as u8
+    }
+
+    fn get_reserved(&self) -> u8 {
+        ((self.0 >> 8) & 0xff) as u8
+    }
+    
+    fn get_doorbell_id(&self) -> u16 {
+        ((self.0 >> 16) & 0xffff) as u16
+    }
+    
+}
+
+#[repr(C)]
+pub struct XhciDoorbellManager {
+    doorbell: *mut XhciDoorbellRegister,
+}
+
+impl XhciDoorbellManager {
+    pub fn new(manager: *mut XhciDoorbellRegister) -> Self {
+        Self{ 
+            doorbell: manager
+        }
+    }
+
+    fn ring_doorbell(&mut self, doorbell: u8, target: u8) {
+        unsafe {
+            self.doorbell
+                .add(doorbell as usize)
+                .write_volatile(XhciDoorbellRegister(target as u32));
+        }
+    }
+
+    pub fn ring_command_doorbell(&mut self) {
+        self.ring_doorbell(0, 0);
+    }
+
+    pub fn ring_control_endpoint_doorbell(&mut self, doorbell: u8) {
+        self.ring_doorbell(doorbell, 1);
+    }
+ }

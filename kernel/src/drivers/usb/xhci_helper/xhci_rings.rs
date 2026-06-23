@@ -5,6 +5,7 @@ use crate::println;
 use alloc::vec::Vec;
 use alloc::vec;
 
+#[derive(Copy, Clone)]
 pub struct XhciCommandRing {
     max_trb_count: usize,
     enqueue_ptr: usize,
