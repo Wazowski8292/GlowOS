@@ -71,6 +71,8 @@ pub fn init(boot_info: &'static mut BootInfo) {
     let framebuffer = boot_info.framebuffer.as_mut().unwrap() as *mut FrameBuffer;
     let xhci_base_vaddr = boot_info.physical_memory_offset.into_option().expect("Physical memory offset not found");
 
+    enable_local_apic();
+
     drivers::gdt::init();
     memory::allocator::alloc_init(boot_info);
     
@@ -78,6 +80,15 @@ pub fn init(boot_info: &'static mut BootInfo) {
     drivers::interrupts::init_idt();
 
     drivers::usb::xhci::init(xhci_base_vaddr);
+}
+
+pub fn enable_local_apic() {
+    use x86_64::registers::model_specific::Msr;
+    unsafe {
+        let mut apic_base = Msr::new(0x1B).read();
+        apic_base |= 1 << 11;
+        Msr::new(0x1B).write(apic_base);
+    }
 }
 
 pub fn hlt_loop() -> ! {

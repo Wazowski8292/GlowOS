@@ -24,6 +24,7 @@ lazy_static! {
         }
         idt[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
         idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler);
+        idt[InterruptIndex::Xhci.as_usize()].set_handler_fn(xhci_interrupt_handler);
         idt
     };
 }
@@ -46,7 +47,7 @@ pub fn init_idt() {
     unsafe { 
         let mut pics = PICS.lock();
         pics.initialize();
-        pics.write_masks(0xFC, 0xFF);
+        pics.write_masks(0xF8, 0xFF);
     };
 
     init_pit(HZ);
@@ -97,14 +98,15 @@ pub static PICS: spin::Mutex<ChainedPics> =
 pub enum InterruptIndex {
     Timer = PIC_1_OFFSET,
     Keyboard,
+    Xhci,
 }
 
 impl InterruptIndex {
-    fn as_u8(self) -> u8 {
+    pub fn as_u8(self) -> u8 {
         self as u8
     }
 
-    fn as_usize(self) -> usize {
+    pub fn as_usize(self) -> usize {
         usize::from(self.as_u8())
     }
 }
@@ -177,4 +179,15 @@ pub fn wait(time: usize) {
     while time / (HZ as usize) > timer {
     }
     timer = 0;
+}
+
+extern "x86-interrupt" fn xhci_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    unsafe {
+        if let Some(driver) = &mut *(&raw mut crate::drivers::usb::xhci::XHCI_DRIVER) {
+            driver.handle_irq();
+        }
+
+        PICS.lock()
+            .notify_end_of_interrupt(InterruptIndex::Xhci.as_u8());
+    }
 }

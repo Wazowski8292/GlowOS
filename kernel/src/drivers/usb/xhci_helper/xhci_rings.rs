@@ -149,7 +149,7 @@ impl XhciEventRing {
         unsafe { (*self.trb.add(self.dequeue_ptr)).control.cycle_bit() == self.ring_cycle_state }
     }
 
-    fn dequeue_events(&mut self, trbs: &mut Vec<*const XhciTransferRequestBlock>) {
+    pub fn dequeue_events(&mut self, trbs: &mut Vec<*const XhciTransferRequestBlock>) {
         while self.has_unprocessed_events() {
             if let Some(trb) = self.dequeue_ptr() {
                 trbs.push(trb);

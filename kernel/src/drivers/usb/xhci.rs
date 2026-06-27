@@ -1,14 +1,15 @@
 use super::xhci_helper::xhci_rings::{ XhciCommandRing, XhciEventRing };
-use super::xhci_helper::xhci_registers::{XhciRuntimeRegister, XhciInterruptRegisters, XhciDoorbellManager};
-use super::xhci_helper::xhci_trb::{XhciTransferRequestBlock, Control};
+use super::xhci_helper::xhci_registers::{XhciRuntimeRegister, XhciInterruptRegisters, XhciDoorbellManager, XhciDoorbellRegister};
+use super::xhci_helper::xhci_trb::{XhciTransferRequestBlock, Control, XhciCommandCompletionTrb, CompletionCode};
 use super::pci;
-use crate::drivers::interrupts::wait;
+use crate::drivers::interrupts::{wait, InterruptIndex};
 use crate::println;
 use x86_64::structures::paging::{Page, PhysFrame, Mapper, Size4KiB, Translate};
 use x86_64::VirtAddr;
 use crate::memory::memory::MEMORY_MANAGER;
 use crate::memory::memory;
 use volatile::Volatile;
+use alloc::vec::Vec;
 
 const XHCI_USBCMD_START_STOP: u32 = 0;
 const XHCI_USBCMD_RESET: u32 = 1;
@@ -82,7 +83,7 @@ pub struct XhciDriver {
     command_ring: Option<XhciCommandRing>,
     event_ring: Option<XhciEventRing>,
     runtime_register: Volatile< *mut XhciRuntimeRegister>,
-    doorbell_manager: *mut XhciDoorbellManager,
+    doorbell_manager: XhciDoorbellManager,
 }
 
 pub static mut XHCI_DRIVER: Option<XhciDriver> = None;
@@ -118,7 +119,7 @@ impl XhciDriver {
         let runtime_reg = Volatile::new((xhci_mmio_base + rtssoff) as *mut XhciRuntimeRegister);
 
         let dboff = unsafe{ (*cap_regs).dboff.read()} as u64;
-        let doorbell_man = (xhci_mmio_base + dboff) as *mut XhciDoorbellManager;
+        let doorbell_register = (xhci_mmio_base + dboff) as *mut XhciDoorbellRegister;
 
         Self {
             cap_regs,
@@ -142,7 +143,7 @@ impl XhciDriver {
             command_ring: None,
             event_ring: None,
             runtime_register: runtime_reg,
-            doorbell_manager: doorbell_man,
+            doorbell_manager: XhciDoorbellManager::new(doorbell_register),
         }
     }
 
@@ -339,11 +340,14 @@ impl XhciDriver {
         }
 
         self.set_up_dcbaa();
-        self.command_ring = Some(XhciCommandRing::new(256, &self));
+
+        let command_ring = XhciCommandRing::new(256, self);
+        let crcr_val = command_ring.physical_base as u64 | command_ring.ring_cycle_state as u64;
+        self.command_ring = Some(command_ring);
 
         unsafe {
             let op = self.op_regs as *mut XhciOperationalRegisters;
-            (*op).crcr.write(self.command_ring.as_mut().unwrap().physical_base as u64 | self.command_ring.as_mut().unwrap().ring_cycle_state as u64);
+            (*op).crcr.write(crcr_val);
         }
     }
 
@@ -430,21 +434,70 @@ impl XhciDriver {
         self.start_host_controller();
         self.log_usbsts();
 
-        let mut trb: XhciTransferRequestBlock = XhciTransferRequestBlock {
+        let mut trb = XhciTransferRequestBlock {
             parameter: 0,
             status: 0,
             control: Control::new(),
         };
         trb.control.set_trb_type(9);
-        self.command_ring.unwrap().enqueue(&mut trb);
-        unsafe {(*self.doorbell_manager).ring_command_doorbell() };
+
+        if let Some(command_ring) = self.command_ring.as_mut() {
+            command_ring.enqueue(&mut trb);
+        } else {
+            println!("xHCI: command ring not initialized!");
+            return;
+        }
+
+        self.doorbell_manager.ring_command_doorbell();
+
+        wait(100);
+        println!("Polling event ring after doorbell...");
+        if let Some(event_ring) = &mut self.event_ring {
+            println!("has_unprocessed_events = {}", event_ring.has_unprocessed_events());
+            if event_ring.has_unprocessed_events() {
+                let mut events = Vec::new();
+                event_ring.dequeue_events(&mut events);
+                for (i, event) in events.iter().enumerate() {
+                    println!("EventRing[{}].status = {:#x}", i, unsafe { (**event).status });
+                }
+            }
+        }
+    }
+
+    pub fn handle_irq(&mut self) {
+        if let Some(event_ring) = &mut self.event_ring {
+            if event_ring.has_unprocessed_events() {
+                let mut events: Vec<*const XhciTransferRequestBlock> = Vec::new();
+                event_ring.dequeue_events(&mut events);
+
+                for (i, &event) in events.iter().enumerate() {
+                    unsafe {
+                        if let Some(completion) = XhciCommandCompletionTrb::from_raw(event) {
+                            let code = CompletionCode::from_u8(completion.completion_code());
+                            println!(
+                                "EventRing[{}]: CommandCompletion slot={} code={:?}",
+                                i, completion.slot_id(), code
+                            );
+                        } else {
+                            println!("EventRing[{}]: unknown TRB type, status={:#x}", i, (*event).status);
+                        }
+                    }
+                }
+            }
+        }
+
+        self.acknowledge_irq(0);
     }
 }
 
 pub fn init(_phys_mem_offset: u64) {
-    if let Some(xhci_virt_addr) = pci::init() {
-        println!("xHCI virt addr: {:#x} (mmio-mapped)", xhci_virt_addr.as_u64());
-        
+    if let Some((bus, dev, func, xhci_virt_addr)) = pci::init() {
+        println!("xHCI virt addr: {:#x}", xhci_virt_addr.as_u64());
+
+        if !pci::enable_msi(bus, dev, func, InterruptIndex::Xhci.as_u8()) {
+            println!("xHCI: MSI not available, interrupts may not work");
+        }
+
         let mut xhci_driver = unsafe { XhciDriver::new(xhci_virt_addr.as_u64()) };
 
         xhci_driver.log_capability_registers();
@@ -452,12 +505,19 @@ pub fn init(_phys_mem_offset: u64) {
         xhci_driver.configure_operational_registers();
         xhci_driver.log_operational_registers();
         xhci_driver.configure_runtime_registers();
-        
         xhci_driver.start_device();
-        
 
         unsafe { XHCI_DRIVER = Some(xhci_driver) };
     } else {
         println!("Error: No xHCI controller found on PCI bus.");
     }
+}
+
+pub fn read_xhci_irq_line(pci_base: u64) -> u8 {
+    let irq = unsafe {
+        let ptr = (pci_base + 0x3C) as *const u8;
+        ptr.read_volatile()
+    };
+    println!("xHCI PCI IRQ line: {}", irq);
+    irq
 }

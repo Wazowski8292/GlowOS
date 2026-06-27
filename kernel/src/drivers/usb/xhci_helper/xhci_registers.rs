@@ -46,7 +46,7 @@ pub struct XhciRuntimeRegister {
 }
 
 #[repr(C)]
-struct XhciDoorbellRegister (u32);
+pub struct XhciDoorbellRegister (u32);
 
 impl XhciDoorbellRegister {
     fn get_doorbell_target(&self) -> u8 {
@@ -64,6 +64,7 @@ impl XhciDoorbellRegister {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct XhciDoorbellManager {
     doorbell: *mut XhciDoorbellRegister,
 }
